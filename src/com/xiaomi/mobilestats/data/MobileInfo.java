@@ -6,7 +6,6 @@ public class MobileInfo {
 	String phoneModel;
 	String deviceId;
 	String macID;
-	String macIDForTV;
 	String CUID;
 	String networkOperator;
 	String appChannel;
@@ -16,5 +15,4 @@ public class MobileInfo {
 	String gpsLocationSetting;
 	String wifiLocationSetting;
 	String linkedWay;
-	
 }

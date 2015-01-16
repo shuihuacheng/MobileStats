@@ -9,20 +9,20 @@ import android.view.WindowManager;
 
 public class AppInfo {
 	
-	  public static String a(Context paramContext, String paramString)
+	  public static String findAppManifest(Context paramContext, String paramString)
 	  {
 	    String str1 = "";
 	    PackageManager localPackageManager = paramContext.getPackageManager();
 	    ApplicationInfo localApplicationInfo;
-	    String str2;
+	    String str2 = "";
 	    try
 	    {
 	      localApplicationInfo = localPackageManager.getApplicationInfo(paramContext.getPackageName(), 128);
 	    }  catch (PackageManager.NameNotFoundException localNameNotFoundException){
-	      if (paramString == "XM_STAT_ID")
+	      if (paramString == "XM_APPKEY")
 	      {
 	        str2 = "不能在manifest.xml中找到APP Key||can't find app key in manifest.xml.";
-	        au.c(str2);
+	        //TODO 没有在Manifest中配置AppKey
 	      }
 	      return str1;
 	    }
@@ -30,22 +30,21 @@ public class AppInfo {
 	    {
 	      Object localObject = null;
 	      if (localApplicationInfo.metaData != null)
-	        localObject = localApplicationInfo.metaData.get(paramString);
+	         localObject = localApplicationInfo.metaData.get(paramString);
 	      if (localObject == null)
 	      {
-	        au.a("StatSDK", "null,can't find information for key:" + paramString);
-	        if (paramString == "XM_STAT_ID")
+	        if (paramString == "XM_APPKEY")
 	        {
 	          str2 = "不能在manifest.xml中找到APP Key||can't find app key in manifest.xml.";
-	          au.c(str2);
+		        //TODO 没有在Manifest中配置AppKey
 	        }
 	        return str1;
 	      }
 	      str1 = localObject.toString();
-	      if ((str1.trim().equals("")) && (paramString == "XM_STAT_ID"))
+	      if ((str1.trim().equals("")) && (paramString == "XM_APPKEY"))
 	      {
 	        str2 = "APP Key值为空||The value of APP Key is empty.";
-	        au.c(str2);
+	        //TODO Manifest中配置AppKey为空
 	      }
 	    }
 	    return str1;
@@ -69,12 +68,11 @@ public class AppInfo {
 	    try
 	    {
 	      localDisplayMetrics =getDisplayMetrics(paramContext);
-	    }catch (Exception localException)
-	    {
-	      au.a("createAdReqURL", localException);
+	    }catch (Exception localException) {
+	    	
 	    }
-	    int i = localDisplayMetrics.widthPixels;
-	    return i;
+	    int widthPixels = localDisplayMetrics.widthPixels;
+	    return widthPixels;
 	  }
 
 	  public static int getDisplayHeight(Context paramContext)
@@ -83,13 +81,11 @@ public class AppInfo {
 	    try
 	    {
 	      localDisplayMetrics = getDisplayMetrics(paramContext);
+	    }catch (Exception localException){
+	    	
 	    }
-	    catch (Exception localException)
-	    {
-	      au.a("createAdReqURL", localException);
-	    }
-	    int i = localDisplayMetrics.heightPixels;
-	    return i;
+	    int heightPixels = localDisplayMetrics.heightPixels;
+	    return heightPixels;
 	  }
 	  
 	  /**
@@ -105,15 +101,18 @@ public class AppInfo {
 	    {
 	      PackageInfo localPackageInfo = localPackageManager.getPackageInfo(str, 0);
 	      return localPackageInfo.versionCode;
-	    }
-	    catch (PackageManager.NameNotFoundException localNameNotFoundException)
-	    {
-	      au.c(new Object[] { "sdkstat", "get app version code exception" });
+	    } catch (PackageManager.NameNotFoundException localNameNotFoundException) {
+	     //TODO get app version code exception
 	    }
 	    return 1;
 	  }
 	  
-	  public static String d(Context paramContext)
+	  /**
+	   * 获取VersionName
+	   * @param paramContext
+	   * @return
+	   */
+	  public static String getVisionName(Context paramContext)
 	  {
 	    PackageManager localPackageManager = paramContext.getPackageManager();
 	    String str = paramContext.getPackageName();
@@ -121,10 +120,8 @@ public class AppInfo {
 	    {
 	      PackageInfo localPackageInfo = localPackageManager.getPackageInfo(str, 0);
 	      return localPackageInfo.versionName;
-	    }
-	    catch (PackageManager.NameNotFoundException localNameNotFoundException)
-	    {
-	      au.c(new Object[] { "sdkstat", "get app version name exception" });
+	    } catch (PackageManager.NameNotFoundException localNameNotFoundException){
+	    	 //TODO  get app version name exception
 	    }
 	    return "";
 	  }

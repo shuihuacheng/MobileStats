@@ -12,8 +12,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
+
+import com.xiaomi.mobilestats.XMAgent;
+import com.xiaomi.mobilestats.data.SendStrategyEnum;
+import com.xiaomi.mobilestats.object.Msg;
 
 public class CrashHandler implements UncaughtExceptionHandler {
 	private static final String TAG = "CrashHandler";
@@ -44,20 +50,18 @@ public class CrashHandler implements UncaughtExceptionHandler {
 	}
 
 	@Override
-	public void uncaughtException(Thread thread, final Throwable paramThrowable) {
+	public void uncaughtException(Thread thread, final Throwable throwable) {
 		Log.d(TAG, "uncaughtException:"+" thread:"+thread.getName());
 		new Thread() {
 			@Override
 			public void run() {
 				super.run();
 				Looper.prepare();
-				String errorinfo = getErrorInfo(paramThrowable);
-
-				String[] ss = errorinfo.split("\n\t");
-				String headstring = ss[0] + "\n\t" + ss[1] + "\n\t" + ss[2]
-						+ "\n\t";
-				String newErrorInfoString = headstring + errorinfo;
-
+				
+				String throwableInfo = getThrowableInfo(throwable);
+				String[] ss = throwableInfo.split("\n\t");
+				String headstring = ss[0] + "\n\t" + ss[1] + "\n\t" + ss[2]	+ "\n\t";
+				String newErrorInfoString = headstring + throwableInfo;
 				stacktrace = newErrorInfoString;
 				activities = CommonUtil.getActivityName(mContext);
 				time = CommonUtil.getTime();
@@ -71,25 +75,23 @@ public class CrashHandler implements UncaughtExceptionHandler {
 				}
 				localJSONArray.put(errorJSONObject);
 				
-				CommonUtil.printLog("XMAgent", errorJSONObject.toString());
-
-				if (1 == CommonUtil.getReportPolicyMode(mContext)
-						&& CommonUtil.isNetworkAvailable(mContext)) {
-					if (!stacktrace.equals("")) {
-//						MyMessage message = NetworkUitlity.post(
-//								CommonConfig.PREURL + CommonConfig.errorUrl,
-//								errorInfo.toString());
-//						CommonUtil.printLog("XMAgent", message.getMsg());
-//						if (!message.isFlag()) {
-//							UmsAgent.saveInfoToFile("errorInfo", errorInfo,context);
-//							CommonUtil.printLog("error", message.getMsg());
-//						}
+				if (CommonUtil.getSendStragegy(mContext).equals(SendStrategyEnum.APP_START) && CommonUtil.isNetworkAvailable(mContext)) {
+					if (!TextUtils.isEmpty(stacktrace.toString())) {
+						Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.errorUrl,errorJSONObject.toString());
+						if (!msg.isFlag()) {
+							XMAgent.saveInfoToFile("errorInfo", errorJSONObject,mContext);
+						}
 					}
 				} else {
-					//TODO缓存错误日志信息
-//					UmsAgent.saveInfoToFile("errorInfo", errorInfo, context);
+					XMAgent.saveInfoToFile("errorInfo", errorJSONObject, mContext);
 				}
-				android.os.Process.killProcess(android.os.Process.myPid());
+				new Handler().postDelayed(new Runnable() {
+					
+					@Override
+					public void run() {
+						android.os.Process.killProcess(android.os.Process.myPid());
+					}
+				}, 300);
 				Looper.loop();
 			}
 		}.start();
@@ -105,7 +107,7 @@ public class CrashHandler implements UncaughtExceptionHandler {
 		try {
 			errorInfo.put("stacktrace", stacktrace);
 			errorInfo.put("time", time);
-			errorInfo.put("version", CommonUtil.getVersion(context));
+			errorInfo.put("version", CommonUtil.getVersionName(context));
 			errorInfo.put("activity", activities);
 			errorInfo.put("appkey", appkey);
 			errorInfo.put("os_version", os_version);
@@ -121,7 +123,7 @@ public class CrashHandler implements UncaughtExceptionHandler {
 	 * @param throwable
 	 * @return
 	 */
-	private String getErrorInfo(Throwable throwable) {
+	private String getThrowableInfo(Throwable throwable) {
 		Writer writer = new StringWriter();
 		PrintWriter pw = new PrintWriter(writer);
 		throwable.printStackTrace(pw);

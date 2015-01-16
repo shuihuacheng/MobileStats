@@ -3,7 +3,7 @@ package com.xiaomi.mobilestats.common;
 public class CommonConfig {
     public static boolean DEBUG_MODE = true;
     
-    public static long kContinueSessionMillis = 30000L;
+    public static long kContinueSessionMillis =  30000L;
     public static final Object saveOnlineConfigMutex = new Object();	
     public static final String eventUrl="/xm/postEvent";
     public static final String errorUrl = "/xm/postErrorLog";

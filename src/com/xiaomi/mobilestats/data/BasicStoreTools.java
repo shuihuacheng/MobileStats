@@ -46,7 +46,7 @@ public class BasicStoreTools extends BasicStoreToolsBase{
 	    return getString(paramContext, "exceptionanalysistag", null);
 	  }
 
-	  protected void setSendStrategy(Context paramContext, int paramInt)
+	  public void setSendStrategy(Context paramContext, int paramInt)
 	  {
 	    putInt(paramContext, "sendLogtype", paramInt);
 	  }
@@ -56,7 +56,7 @@ public class BasicStoreTools extends BasicStoreToolsBase{
 	    return getInt(paramContext, "sendLogtype", 0);
 	  }
 
-	  protected void setSendStrategyTime(Context paramContext, int paramInt)
+	  public void setSendStrategyTime(Context paramContext, int paramInt)
 	  {
 	    putInt(paramContext, "timeinterval", paramInt);
 	  }
