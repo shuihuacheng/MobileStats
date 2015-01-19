@@ -18,12 +18,13 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.xiaomi.mobilestats.XMAgent;
+import com.xiaomi.mobilestats.controller.LogController;
 import com.xiaomi.mobilestats.data.SendStrategyEnum;
 import com.xiaomi.mobilestats.object.Msg;
 
 public class CrashHandler implements UncaughtExceptionHandler {
 	private static final String TAG = "CrashHandler";
-	private static final String CACHE_EXCEPTION_DIR = "__local_except_cache.json";     
+	private static final String CACHE_EXCEPTION_DIR = LogController.baseFilePath+"_except_cache.json";     
 	private static CrashHandler mCrashHandler;
 	private Context mContext;
 	private Object stacktrace;

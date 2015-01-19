@@ -1,18 +1,18 @@
 package com.xiaomi.mobilestats.data;
 
 public class MobileInfo {
-	String OSVersion;
-	String OSSysVersion;
-	String phoneModel;
-	String deviceId;
-	String macID;
-	String CUID;
-	String networkOperator;
-	String appChannel;
-	String appKey;
-	int appVersionCode;
-	String appVersionName;
-	String gpsLocationSetting;
-	String wifiLocationSetting;
-	String linkedWay;
+	public String OSVersion;
+	public String OSSysVersion;
+	public String phoneModel;
+	public String deviceId;
+	public String macID;
+	public String CUID;
+	public String networkOperator;
+	public String appChannel;
+	public String appKey;
+	public int appVersionCode;
+	public String appVersionName;
+	public String gpsLocationSetting;
+	public String wifiLocationSetting;
+	public String linkedWay;
 }

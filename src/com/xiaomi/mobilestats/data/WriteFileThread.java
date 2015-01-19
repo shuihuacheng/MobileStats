@@ -36,10 +36,12 @@ public class WriteFileThread extends Thread{
 		try {
 			if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) && CommonUtil.checkPermissions(context, "android.permission.WRITE_EXTERNAL_STORAGE")){
 				File file = new File(filePath);
+				if(!file.getParentFile().exists()){
+					file.getParentFile().mkdirs();
+				}
 				if(!file.exists()){
 					file.createNewFile();
 				}
-				
 				FileInputStream in = new FileInputStream(file);
 				StringBuffer sb = new StringBuffer();
 				int i=0;

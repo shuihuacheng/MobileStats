@@ -26,12 +26,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.telephony.TelephonyManager;
 import android.telephony.gsm.GsmCellLocation;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.xiaomi.mobilestats.data.SendStrategyEnum;
 import com.xiaomi.mobilestats.data.WriteFileThread;
+import com.xiaomi.mobilestats.object.GSMCell;
 import com.xiaomi.mobilestats.object.LatitudeAndLongitude;
-import com.xiaomi.mobilestats.object.SCell;
 
 public class CommonUtil {
 
@@ -151,35 +152,21 @@ public class CommonUtil {
 	}
 
 	/**
-	 * get APPKEY
-	 * 
+	 *从AndroidManifest.xml中查找XM_APPKEY数据
 	 * @param context
 	 * @return appkey
 	 */
-	public static String getAppKey(Context paramContext) {
-		if (paramContext == null) {
-			return "";
-		}
-		String xmAppkey;
-		try {
-			PackageManager localPackageManager = paramContext.getPackageManager();
-			ApplicationInfo localApplicationInfo = localPackageManager.getApplicationInfo(paramContext.getPackageName(), 128);
-			if (localApplicationInfo != null) {
-				String str = localApplicationInfo.metaData.getString("XM_APPKEY");
-				if (str != null) {
-					xmAppkey = str;
-					return xmAppkey.toString();
-				}
-				if (CommonConfig.DEBUG_MODE)
-					Log.e("XMAgent","Could not read xm_APPKEY meta-data from AndroidManifest.xml.");
-			}
-		} catch (Exception localException) {
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("XMAgent","Could not read xm_APPKEY meta-data from AndroidManifest.xml.");
-				localException.printStackTrace();
-			}
-		}
-		return "";
+	public static String getAppKey(Context context) {
+		return getAndroidManifestMetaData(context, "XM_APPKEY");
+	}
+	
+	/**
+	 * 从AndroidManifest.xml中查找XM_APPCHANNEL数据
+	 * @param context
+	 * @return appchannel
+	 */
+	public static String getAppChannel(Context context) {
+		return getAndroidManifestMetaData(context, "XM_APPCHANNEL");
 	}
 
 	/**
@@ -259,8 +246,7 @@ public class CommonUtil {
 		if (checkPermissions(context, "android.permission.READ_PHONE_STATE")) {
 			String deviceId = "";
 			if (checkPhoneState(context)) {
-				TelephonyManager tm = (TelephonyManager) context
-						.getSystemService(Context.TELEPHONY_SERVICE);
+				TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 				deviceId = tm.getDeviceId();
 			}
 			if (deviceId != null) {
@@ -377,8 +363,8 @@ public class CommonUtil {
 	 * 
 	 * @throws Exception
 	 */
-	public static SCell getCellInfo(Context context) throws Exception {
-		SCell cell = new SCell();
+	public static GSMCell getCellInfo(Context context) throws Exception {
+		GSMCell cell = new GSMCell();
 		TelephonyManager mTelNet = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 		GsmCellLocation location = (GsmCellLocation) mTelNet.getCellLocation();
 		if (location == null) {
@@ -397,8 +383,8 @@ public class CommonUtil {
 		cell.MCC = mcc;
 		cell.MCCMNC = Integer.parseInt(operator);
 		cell.MNC = mnc;
-//		cell.LAC = lac;
-//		cell.CID = cid;
+		cell.LAC = lac;
+		cell.CID = cid;
 		return cell;
 	}
 
@@ -406,13 +392,10 @@ public class CommonUtil {
 			boolean mUseLocationService) {
 		LatitudeAndLongitude latitudeAndLongitude = new LatitudeAndLongitude();
 		if (mUseLocationService) {
-			LocationManager loctionManager = (LocationManager) context
-					.getSystemService(Context.LOCATION_SERVICE);
+			LocationManager loctionManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
 			List<String> matchingProviders = loctionManager.getAllProviders();
 			for (String prociderString : matchingProviders) {
-				System.out.println(prociderString);
-				Location location = loctionManager
-						.getLastKnownLocation(prociderString);
+				Location location = loctionManager.getLastKnownLocation(prociderString);
 				if (location != null) {
 					latitudeAndLongitude.latitude = location.getLatitude() + "";
 					latitudeAndLongitude.longitude = location.getLongitude()+ "";
@@ -613,4 +596,36 @@ public class CommonUtil {
 		}
 	}
 
+	/**
+	 * 从AndroidManifest.xml中查找meta-data数据
+	 * @param context
+	 * @param param
+	 * @return
+	 */
+	private static String getAndroidManifestMetaData(Context context,String param){
+		if (context == null) {
+			return "";
+		}
+		String result = "";
+		try {
+			PackageManager localPackageManager = context.getPackageManager();
+			ApplicationInfo localApplicationInfo = localPackageManager.getApplicationInfo(context.getPackageName(), 128);
+			if (localApplicationInfo != null) {
+				String xmlData = localApplicationInfo.metaData.getString(param);
+				if (!TextUtils.isEmpty(xmlData)) {
+					result = xmlData;
+					return result.toString();
+				}
+				if (CommonConfig.DEBUG_MODE)
+					CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
+			}
+		} catch (Exception localException) {
+			if (CommonConfig.DEBUG_MODE) {
+				CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
+				localException.printStackTrace();
+			}
+		}
+		return result;
+	}
+	
 }

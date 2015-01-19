@@ -2,34 +2,43 @@ package com.xiaomi.mobilestats;
 
 import java.io.File;
 import java.text.ParseException;
+import java.util.Locale;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.os.Environment;
+import android.location.LocationManager;
+import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
+import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
+import android.view.WindowManager;
 
 import com.xiaomi.mobilestats.common.CommonConfig;
 import com.xiaomi.mobilestats.common.CommonUtil;
 import com.xiaomi.mobilestats.common.CrashHandler;
 import com.xiaomi.mobilestats.common.NetworkUtil;
 import com.xiaomi.mobilestats.common.StringUtils;
-import com.xiaomi.mobilestats.data.ReadFromFileThead;
+import com.xiaomi.mobilestats.controller.LogController;
+import com.xiaomi.mobilestats.data.BasicStoreTools;
+import com.xiaomi.mobilestats.data.DataCore;
 import com.xiaomi.mobilestats.data.SendStrategyEnum;
 import com.xiaomi.mobilestats.data.WriteFileThread;
+import com.xiaomi.mobilestats.object.GSMCell;
+import com.xiaomi.mobilestats.object.LatitudeAndLongitude;
 import com.xiaomi.mobilestats.object.Msg;
-import com.xiaomi.mobilestats.receiver.MAlarmReceiver;
 
 public class XMAgent {
-    private static boolean mUseLocationService = true;
+	private static final String TAG = "XMAgent";
+	private static boolean mUseLocationService = true;
     private static long start = 0;
     private static long end = 0;//
     private static String start_millis = null;// The start time point
@@ -37,22 +46,14 @@ public class XMAgent {
     private static String duration = null;// run time
     private static String session_id = null;
     private static String activities = null;// currnet activity's name
-    private static String appkey = "";
-    private static String stacktrace = null;// error info
     private static String time = null; // error time
-    private static String os_version = null;
-    private static String deviceID = null;
+    private static String pageName  = "";
+    private static boolean isFirst = true;     //是否是第一次登录
 
-    private static String curVersion = null;// app version
-    private static String packagename = null;// app packagename
-    private static String sdk_version = null;// Sdk version
-    private static boolean mUpdateOnlyWifi = true;
-    private static SendStrategyEnum sendStrategy = SendStrategyEnum.APP_START;
-    private static Handler handler;
-    HandlerThread handlerThread = new HandlerThread("XMAgent");
+   private static HandlerThread handlerThread = new HandlerThread("XMAgent");
+   
     
     private static boolean isPostFile = true;
-    private static boolean isFirst = true;
     private static XMAgent instance = new XMAgent();
     
     public static XMAgent getInstance(){
@@ -61,8 +62,26 @@ public class XMAgent {
     
     private XMAgent(){
     	handlerThread.start();
-    	XMAgent.handler = new Handler(handlerThread.getLooper());
+//    	XMAgent.handler = new Handler(handlerThread.getLooper());
     }
+    
+    public static final int MSG_ALARM_ACTION = 0x1000;
+    public static Handler handler  = new Handler(handlerThread.getLooper()){
+
+		@Override
+		public void handleMessage(Message msg) {
+			super.handleMessage(msg);
+			switch(msg.what){
+			case MSG_ALARM_ACTION:
+				CommonUtil.printLog(TAG, "MSG_ALARM_ACTION");
+				
+				break;
+				default:
+					break;
+			}
+		}
+    	
+    };
 	
 	 /**
 	  *  用于统计单个Activity页面开始时间
@@ -76,6 +95,7 @@ public class XMAgent {
 
 	            @Override
 	            public void run() {
+	            	postClientDatas(context);
 	                postOnResumeInfo(context);
 	            }
 	        };
@@ -105,18 +125,35 @@ public class XMAgent {
 	   * @param context
 	   * @param pageName
 	   */
-	  public static synchronized void  onPageStart(Context context, String pageName){
-		  
+	  public static synchronized void  onPageStart(final Context context, final String pageName){
+	        Runnable postOnPageStartInfoRunnable = new Runnable() {
+
+	            @Override
+	            public void run() {
+	            	postClientDatas(context);
+	     	       postOnPageStartInfo(context,pageName);
+	            }
+	        };
+	        handler.post(postOnPageStartInfoRunnable);
 	  } 
 	  
-	  /**
+
+
+	/**
 	   *  用于统计单个Activity页面结束时间
 	   *  嵌入位置：Fragment的onPause()函数中 activity的onPause()函数中或者自定义页面的结束函数中 
 	   * @param context
 	   * @param pageName
 	   */
-	  public static synchronized void onPageEnd(Context context, String pageName) {
-		  
+	  public static synchronized void onPageEnd(final Context context, final String pageName) {
+	        Runnable postOnPageEndInfoRunnable = new Runnable() {
+
+	            @Override
+	            public void run() {
+	                postOnPageEndInfo(context,pageName);
+	            }
+	        };
+	        handler.post(postOnPageEndInfoRunnable);
 	  }
 	  
 	  /**
@@ -162,8 +199,9 @@ public class XMAgent {
 	   *  该设置将覆盖AndroidManifest.xml中的XiaoMi_STAT_ID配置
 	   * @param appKey
 	   */
-	  public static void setAppKey(String appkeyValue){
-		  XMAgent.appkey = appkeyValue;
+	  public static void setAppKey(Context context,String appkeyValue){
+		  DataCore.getMoblieInfo().appKey  = appkeyValue;
+		  BasicStoreTools.getInstance().setAppKey(context, appkeyValue);
 	  }
 	  
 	  /**
@@ -171,10 +209,10 @@ public class XMAgent {
 	   * 并且发送日志以该设置为主，不会发生意外丢失的情况， 若设置saveChannelWithCode为false，那么sdk不会保存该channel
 	   * @param context
 	   * @param appChannel
-	   * @param saveChannelWithCode
 	   */
-	  public void setAppChannel(Context context, String appChannel, boolean saveChannelWithCode){
-		  
+	  public void setAppChannel(Context context, String appChannel){
+		  DataCore.getMoblieInfo().appChannel = appChannel;
+		  BasicStoreTools.getInstance().setAppChannel(context, appChannel);
 	  }
 	  
 	  /**
@@ -210,7 +248,7 @@ public class XMAgent {
 	   * @param seconds
 	   */
 	  public static void setLogSenderDelayed(int seconds){
-		  
+		  LogController.geInstance().setSendDelayedTime(seconds);
 	  }
 	  
 	  /**
@@ -221,14 +259,7 @@ public class XMAgent {
 	   * @param only_wifi:是否只在wifi网络下发送
 	   */
 	  public static void setSendLogStrategy(Context context, SendStrategyEnum sst, int rtime_interval, boolean only_wifi){
-		  //TODO 根据context和setSendLogStrategy()检测
-		 XMAgent.sendStrategy = sst;
-		 XMAgent.mUpdateOnlyWifi = only_wifi;
-		 
-		 AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-		 Intent intent = new Intent(MAlarmReceiver.ALARM_ACTION);
-		 PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-		 alarm.setRepeating(AlarmManager.RTC_WAKEUP, CommonConfig.kContinueSessionMillis, rtime_interval*3600000, pendingIntent);
+		 LogController.geInstance().setSendStrategy(context, sst, rtime_interval, only_wifi);
 	  } 
 	  
 	  /**
@@ -241,17 +272,16 @@ public class XMAgent {
 	  }
 	  
 	  /****************  待优化方法*************/
-	    private static String filePath = Environment.getExternalStorageDirectory()+File.separator+"__local_log_cache.json ";
 	    private static void postOnResumeInfo(Context context) {
-	        if (!CommonUtil.isNetworkAvailable(context)) {
-	           
-	        } else {
-	            if (XMAgent.isPostFile) {
-	                Thread thread = new ReadFromFileThead(filePath);
-	                thread.start();
-	                XMAgent.isPostFile = false;
-	            }
-	        }
+//	        if (!CommonUtil.isNetworkAvailable(context) && LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)) {
+//	           
+//	        } else {
+//	            if (XMAgent.isPostFile) {
+//	                Thread thread = new ReadFromFileThead(filePath);
+//	                thread.start();
+//	                XMAgent.isPostFile = false;
+//	            }
+//	        }
 	        isCreateNewSessionID(context);
 
 	        activities = CommonUtil.getActivityName(context);
@@ -271,11 +301,10 @@ public class XMAgent {
 	        end_millis = CommonUtil.getTime();
 	        end = Long.valueOf(System.currentTimeMillis());
 	        duration = end - start + "";
-	        appkey = CommonUtil.getAppKey(context);
 	        
-	        JSONObject info = getJSONObject(context);
+	        JSONObject info = getActivityJSONObject(context);
 	        
-	        if (CommonUtil.isNetworkAvailable(context) && sendStrategy.equals(SendStrategyEnum.APP_START)) {
+	        if (CommonUtil.isNetworkAvailable(context) &&  LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)) {
 	            Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.activityUrl, info.toString());
 	            if (!msg.isFlag()) {
 	            	saveInfoToFile("activityInfo", info, context);
@@ -285,21 +314,94 @@ public class XMAgent {
 	        }
 	    }
 	    
+		  private static void postOnPageStartInfo(Context context, String pageName) {
+//		        if (!CommonUtil.isNetworkAvailable(context)) {
+//			           
+//		        } else {
+//		            if (XMAgent.isPostFile) {
+//		                Thread thread = new ReadFromFileThead(filePath);
+//		                thread.start();
+//		                XMAgent.isPostFile = false;
+//		            }
+//		        }
+		        isCreateNewSessionID(context);
+
+		        activities = CommonUtil.getActivityName(context);
+		        XMAgent.pageName = pageName;
+		        try {
+		            if (session_id == null) {
+		                generateSeesion(context);
+		            }
+		        } catch (Exception e) {
+		            e.printStackTrace();
+		        }
+		        start_millis = CommonUtil.getTime();
+		        start = Long.valueOf(System.currentTimeMillis());
+			}
+		  
+		    private static void postOnPageEndInfo(Context context,String pageName) {
+		        saveSessionTime(context);
+		        end_millis = CommonUtil.getTime();
+		        end = Long.valueOf(System.currentTimeMillis());
+		        duration = end - start + "";
+		        XMAgent.pageName = pageName;
+		        
+		        JSONObject info = getPageJSONObject(context);
+		        
+		        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+		        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
+		        		saveInfoToFile("activityInfo", info, context);
+		        	}else{
+		        		Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.activityUrl, info.toString());
+		        		if (!msg.isFlag()) {
+		        			saveInfoToFile("activityInfo", info, context);
+		        		}
+		        	}
+		        } else {
+		            	saveInfoToFile("activityInfo", info, context);
+		        }
+		    }
+	    
 	    private static void postOnEventInfo(Context context,String eventId,String label) {
-	        saveSessionTime(context);
-	        appkey = CommonUtil.getAppKey(context);
-	        
 	        JSONObject info = getEventJSONObject(context,eventId,label);
 	        
-	        if (CommonUtil.isNetworkAvailable(context) && sendStrategy.equals(SendStrategyEnum.APP_START)) {
-	            Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.eventUrl, info.toString());
-	            if (!msg.isFlag()) {
-	            	saveInfoToFile("eventInfo", info, context);
-	            }
+	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+	        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
+	        		saveInfoToFile("eventInfo", info, context);
+	        	}else{
+		            Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.eventUrl, info.toString());
+		            if (!msg.isFlag()) {
+		            	saveInfoToFile("eventInfo", info, context);
+		            }
+	        	}
 	        } else {
 	            	saveInfoToFile("eventInfo", info, context);
 	        }
 	    }
+	    
+	    /**
+	     * 上报客户端各种参数,只在应用启动后上传一次
+	     * @param context
+	     */
+        private static void postClientDatas(Context context) {
+            if (isFirst) {
+                JSONObject clientData = getClientDataJSONObject(context);
+
+    	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+    	        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
+    	        		  saveInfoToFile("clientData", clientData, context);
+    	        	}else{
+                    Msg msg =  NetworkUtil.post(CommonConfig.PREURL  + CommonConfig.clientDataUrl, clientData.toString());
+	                    if (!msg.isFlag()) {
+	                        saveInfoToFile("clientData", clientData, context);
+	                    }
+    	        	}
+                } else {
+                    saveInfoToFile("clientData", clientData, context);
+                }
+                isFirst = false;
+            }
+        }
 	    
 	    private static void isCreateNewSessionID(Context context) {
 	        long currenttime = System.currentTimeMillis();
@@ -310,7 +412,6 @@ public class XMAgent {
 	            try {
 	                generateSeesion(context);
 	            } catch (ParseException e) {
-	                // TODO Auto-generated catch block
 	                e.printStackTrace();
 	            }
 	        }
@@ -344,13 +445,21 @@ public class XMAgent {
 	    }
 	    
 	    public static void saveInfoToFile(String type, JSONObject info, Context context) {
+	    	String packageName = context.getPackageName();
+	    	String cacheDir = LogController.baseFilePath+packageName+File.separator+"cache"+File.separator;
+	    	File uploadDir = new File(cacheDir+"upload");
+	    	File operatorDir = new File(cacheDir+"operator");
+	    	if(!uploadDir.exists()) uploadDir.mkdirs();
+	    	if(!operatorDir.exists()) operatorDir.mkdirs();
+	    	
+	    	String cachePath = LogController.baseFilePath+packageName+File.separator+"cache"+File.separator+type+"_cache.json";
 	        JSONArray jsonArray = new JSONArray();
 	        try {
 	            jsonArray.put(0, info);
 	            if (handler != null) {
 	                JSONObject jsonObject = new JSONObject();
 	                jsonObject.put(type, jsonArray);
-	                handler.post(new WriteFileThread(context,filePath,jsonObject));
+	                handler.post(new WriteFileThread(context,cachePath,jsonObject));
 	            } else {
 	                CommonUtil.printLog(CommonUtil.getActivityName(context), "handler--null");
 	            }
@@ -359,10 +468,15 @@ public class XMAgent {
 	        }
 	    }
 	    
-	    private static JSONObject getJSONObject(Context context) {
+	    /**
+	     * 获取和拼接Activity页面上报参数
+	     * @param context
+	     * @return
+	     */
+	    private static JSONObject getActivityJSONObject(Context context) {
 	        JSONObject info = new JSONObject();
 	        try {
-	        	info.put("appkey", appkey);
+	        	info.put("appkey", DataCore.getAppkey(context));
 	        	info.put("activities", activities);
 	            info.put("session_id", session_id);
 	            info.put("start_millis", start_millis);
@@ -375,10 +489,39 @@ public class XMAgent {
 	        return info;
 	    }
 	    
+	    /**
+	     * 获取和拼接自定义页面上报参数
+	     * @param context
+	     * @return
+	     */
+	    private static JSONObject getPageJSONObject(Context context) {
+	        JSONObject info = new JSONObject();
+	        try {
+	        	info.put("appkey", DataCore.getAppkey(context));
+	        	info.put("activities", activities);
+	        	info.put("page_name", XMAgent.pageName);
+	            info.put("session_id", session_id);
+	            info.put("start_millis", start_millis);
+	            info.put("end_millis", end_millis);
+	            info.put("duration", duration);
+	            info.put("version", CommonUtil.getVersionName(context));
+	        } catch (JSONException e) {
+	            e.printStackTrace();
+	        }
+	        return info;
+	    }
+	    
+	    /**
+	     * 获取和拼接自定义时间Json上报数据
+	     * @param context
+	     * @param eventId
+	     * @param label
+	     * @return
+	     */
 	    private static JSONObject getEventJSONObject(Context context,String eventId,String label) {
 	        JSONObject info = new JSONObject();
 	        try {
-	        	info.put("appkey", appkey);
+	        	info.put("appkey", DataCore.getAppkey(context));
 	        	info.put("activities", activities);
 	            info.put("session_id", session_id);
 	            info.put("time", time);
@@ -389,6 +532,58 @@ public class XMAgent {
 	            e.printStackTrace();
 	        }
 	        return info;
+	    }
+	    
+	    /**
+	     * 获取和拼接用户设备详细信息
+	     * @param context
+	     * @return
+	     */
+	    private static JSONObject getClientDataJSONObject(Context context) {
+	        TelephonyManager tm = (TelephonyManager) (context .getSystemService(Context.TELEPHONY_SERVICE));
+	        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+	        WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+	        DisplayMetrics displaysMetrics = new DisplayMetrics();
+	        manager.getDefaultDisplay().getMetrics(displaysMetrics);
+	        LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+	        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+	        JSONObject clientData = new JSONObject();
+	        try {
+	            clientData.put("os_version",DataCore.getOSVersion());
+	            clientData.put("platform", "android");
+	            clientData.put("language", Locale.getDefault().getLanguage());
+	            clientData.put("deviceid",DataCore.getDeviceId(tm, context));
+	            clientData.put("appkey", DataCore.getAppkey(context));
+	            clientData.put("resolution", displaysMetrics.widthPixels + "x"+ displaysMetrics.heightPixels);
+	            clientData.put("ismobiledevice", true);
+	            clientData.put("phonetype", tm.getPhoneType());//
+	            clientData.put("imsi", tm.getSubscriberId());
+	            clientData.put("network", CommonUtil.getNetworkTypeWIFI2G3G(context));
+	            clientData.put("time", CommonUtil.getTime());
+	            clientData.put("version", DataCore.getAppVersionCode(context));
+//	            clientData.put("userId", CommonUtil.getUserIdentifier(context));  //从服务端获取的用户ID
+
+	            GSMCell gsmCell = CommonUtil.getCellInfo(context);
+	            clientData.put("mccmnc", gsmCell != null ? "" + gsmCell.MCCMNC : "");
+	            clientData.put("cellid", gsmCell != null ? gsmCell.CID + "" : "");
+	            clientData.put("lac", gsmCell != null ? gsmCell.LAC + "" : "");
+	            clientData.put("modulename", Build.PRODUCT);
+	            clientData.put("devicename", CommonUtil.getDeviceName());
+	            clientData.put("wifimac", wifiManager.getConnectionInfo().getMacAddress());
+	            clientData.put("havebt", adapter == null ? false : true);
+	            clientData.put("havewifi", CommonUtil.isWiFiActive(context));
+	            clientData.put("havegps", locationManager == null ? false : true);
+	            clientData.put("havegravity", CommonUtil.isHaveGravity(context));
+
+	            LatitudeAndLongitude coordinates = CommonUtil.getLatitudeAndLongitude(context,XMAgent.mUseLocationService);
+	            clientData.put("latitude", coordinates.latitude);
+	            clientData.put("longitude", coordinates.longitude);
+	        } catch (JSONException e) {
+	            e.printStackTrace();
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+	        return clientData;
 	    }
 	    
 }
