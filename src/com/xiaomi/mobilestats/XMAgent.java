@@ -1,6 +1,9 @@
 package com.xiaomi.mobilestats;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.Locale;
 
@@ -19,7 +22,9 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.WindowManager;
 
 import com.xiaomi.mobilestats.common.CommonConfig;
@@ -35,25 +40,25 @@ import com.xiaomi.mobilestats.data.WriteFileThread;
 import com.xiaomi.mobilestats.object.GSMCell;
 import com.xiaomi.mobilestats.object.LatitudeAndLongitude;
 import com.xiaomi.mobilestats.object.Msg;
+import com.xiaomi.mobilestats.upload.UploadManager;
 
 public class XMAgent {
 	private static final String TAG = "XMAgent";
 	private static boolean mUseLocationService = true;
     private static long start = 0;
     private static long end = 0;//
-    private static String start_millis = null;// The start time point
-    private static String end_millis = null;// The end time point
-    private static String duration = null;// run time
+    private static String start_millis = null;
+    private static String end_millis = null;
+    private static String duration = null;
     private static String session_id = null;
-    private static String activities = null;// currnet activity's name
-    private static String time = null; // error time
+    private static String activities = null;
+    private static String time = null; 
     private static String pageName  = "";
     private static boolean isFirst = true;     //是否是第一次登录
+    private static boolean isFirstEnter = true;
 
    private static HandlerThread handlerThread = new HandlerThread("XMAgent");
    
-    
-    private static boolean isPostFile = true;
     private static XMAgent instance = new XMAgent();
     
     public static XMAgent getInstance(){
@@ -62,8 +67,38 @@ public class XMAgent {
     
     private XMAgent(){
     	handlerThread.start();
+    	firstCopyLogToUploadDir();
 //    	XMAgent.handler = new Handler(handlerThread.getLooper());
     }
+    
+    /**
+     * 第一次启动应用时把操作日志文件拷贝到提交日志目录
+     */
+	private void firstCopyLogToUploadDir() {
+		new Handler().postDelayed(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					File uploadDir = new File(LogController.uploadFileDir);
+					File operatorDir = new File(LogController.operatorFileDir);
+					if(!uploadDir.exists()) uploadDir.mkdirs();
+					if(!operatorDir.exists()) operatorDir.mkdirs();
+					if(XMAgent.isFirstEnter){
+						File[] operatorFiles = operatorDir.listFiles();
+						if(operatorFiles != null && operatorFiles.length>0){
+							for (File file : operatorFiles) {
+								copyToUploadDirAndDel(file,LogController.uploadFileDir+File.separator+file.getName());
+							}
+						}
+						XMAgent.isFirstEnter = false;
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}, 1000);
+	}
     
     public static final int MSG_ALARM_ACTION = 0x1000;
     public static Handler handler  = new Handler(handlerThread.getLooper()){
@@ -74,7 +109,9 @@ public class XMAgent {
 			switch(msg.what){
 			case MSG_ALARM_ACTION:
 				CommonUtil.printLog(TAG, "MSG_ALARM_ACTION");
-				
+				if(UploadManager.isHasCacheFile()){
+					UploadManager.uploadCachedUploadFiles(handler);
+				}
 				break;
 				default:
 					break;
@@ -95,7 +132,6 @@ public class XMAgent {
 
 	            @Override
 	            public void run() {
-	            	postClientDatas(context);
 	                postOnResumeInfo(context);
 	            }
 	        };
@@ -130,7 +166,6 @@ public class XMAgent {
 
 	            @Override
 	            public void run() {
-	            	postClientDatas(context);
 	     	       postOnPageStartInfo(context,pageName);
 	            }
 	        };
@@ -273,15 +308,6 @@ public class XMAgent {
 	  
 	  /****************  待优化方法*************/
 	    private static void postOnResumeInfo(Context context) {
-//	        if (!CommonUtil.isNetworkAvailable(context) && LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)) {
-//	           
-//	        } else {
-//	            if (XMAgent.isPostFile) {
-//	                Thread thread = new ReadFromFileThead(filePath);
-//	                thread.start();
-//	                XMAgent.isPostFile = false;
-//	            }
-//	        }
 	        isCreateNewSessionID(context);
 
 	        activities = CommonUtil.getActivityName(context);
@@ -304,26 +330,21 @@ public class XMAgent {
 	        
 	        JSONObject info = getActivityJSONObject(context);
 	        
-	        if (CommonUtil.isNetworkAvailable(context) &&  LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)) {
-	            Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.activityUrl, info.toString());
-	            if (!msg.isFlag()) {
-	            	saveInfoToFile("activityInfo", info, context);
-	            }
+	        if (CommonUtil.isNetworkAvailable(context) &&  LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)) {
+		        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
+		        		saveInfoToFile("page", info, context);
+		        	}else{
+		        		Msg msg = NetworkUtil.post(CommonConfig.PREURL, info.toString());
+			            if (!msg.isFlag()) {
+			            	saveInfoToFile("page", info, context);
+			            }
+			         }
 	        } else {
-	            	saveInfoToFile("activityInfo", info, context);
+	            	saveInfoToFile("page", info, context);
 	        }
 	    }
 	    
 		  private static void postOnPageStartInfo(Context context, String pageName) {
-//		        if (!CommonUtil.isNetworkAvailable(context)) {
-//			           
-//		        } else {
-//		            if (XMAgent.isPostFile) {
-//		                Thread thread = new ReadFromFileThead(filePath);
-//		                thread.start();
-//		                XMAgent.isPostFile = false;
-//		            }
-//		        }
 		        isCreateNewSessionID(context);
 
 		        activities = CommonUtil.getActivityName(context);
@@ -348,34 +369,34 @@ public class XMAgent {
 		        
 		        JSONObject info = getPageJSONObject(context);
 		        
-		        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+		        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)  && CommonUtil.isNetworkAvailable(context)) {
 		        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
-		        		saveInfoToFile("activityInfo", info, context);
+		        		saveInfoToFile("page", info, context);
 		        	}else{
-		        		Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.activityUrl, info.toString());
+		        		Msg msg = NetworkUtil.post(CommonConfig.PREURL, info.toString());
 		        		if (!msg.isFlag()) {
-		        			saveInfoToFile("activityInfo", info, context);
+		        			saveInfoToFile("page", info, context);
 		        		}
 		        	}
 		        } else {
-		            	saveInfoToFile("activityInfo", info, context);
+		            	saveInfoToFile("page", info, context);
 		        }
 		    }
 	    
 	    private static void postOnEventInfo(Context context,String eventId,String label) {
 	        JSONObject info = getEventJSONObject(context,eventId,label);
 	        
-	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)  && CommonUtil.isNetworkAvailable(context)) {
 	        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
-	        		saveInfoToFile("eventInfo", info, context);
+	        		saveInfoToFile("event", info, context);
 	        	}else{
-		            Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.eventUrl, info.toString());
+		            Msg msg = NetworkUtil.post(CommonConfig.PREURL, info.toString());
 		            if (!msg.isFlag()) {
-		            	saveInfoToFile("eventInfo", info, context);
+		            	saveInfoToFile("event", info, context);
 		            }
 	        	}
 	        } else {
-	            	saveInfoToFile("eventInfo", info, context);
+	            	saveInfoToFile("event", info, context);
 	        }
 	    }
 	    
@@ -387,17 +408,17 @@ public class XMAgent {
             if (isFirst) {
                 JSONObject clientData = getClientDataJSONObject(context);
 
-    	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.APP_START)  && CommonUtil.isNetworkAvailable(context)) {
+    	        if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)  && CommonUtil.isNetworkAvailable(context)) {
     	        	if(LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)){
-    	        		  saveInfoToFile("clientData", clientData, context);
+    	        		  saveInfoToFile("client", clientData, context);
     	        	}else{
-                    Msg msg =  NetworkUtil.post(CommonConfig.PREURL  + CommonConfig.clientDataUrl, clientData.toString());
+                    Msg msg =  NetworkUtil.post(CommonConfig.PREURL, clientData.toString());
 	                    if (!msg.isFlag()) {
-	                        saveInfoToFile("clientData", clientData, context);
+	                        saveInfoToFile("client", clientData, context);
 	                    }
     	        	}
                 } else {
-                    saveInfoToFile("clientData", clientData, context);
+                    saveInfoToFile("client", clientData, context);
                 }
                 isFirst = false;
             }
@@ -405,7 +426,6 @@ public class XMAgent {
 	    
 	    private static void isCreateNewSessionID(Context context) {
 	        long currenttime = System.currentTimeMillis();
-
 	        SharedPreferences preferences = context.getSharedPreferences("XM_session_ID_savetime", Context.MODE_PRIVATE);
 	        long session_save_time = preferences.getLong("session_save_time", currenttime);
 	        if (currenttime - session_save_time > CommonConfig.kContinueSessionMillis) {
@@ -417,6 +437,12 @@ public class XMAgent {
 	        }
 	    }
 	    
+	    /**
+	     * 生成唯一SeesionId
+	     * @param context
+	     * @return
+	     * @throws ParseException
+	     */
 	    private static String generateSeesion(Context context)
 	            throws ParseException {
 	        String sessionId = "";
@@ -445,14 +471,41 @@ public class XMAgent {
 	    }
 	    
 	    public static void saveInfoToFile(String type, JSONObject info, Context context) {
-	    	String packageName = context.getPackageName();
-	    	String cacheDir = LogController.baseFilePath+packageName+File.separator+"cache"+File.separator;
-	    	File uploadDir = new File(cacheDir+"upload");
-	    	File operatorDir = new File(cacheDir+"operator");
+	    	File uploadDir = new File(LogController.uploadFileDir);
+	    	File operatorDir = new File(LogController.operatorFileDir);
 	    	if(!uploadDir.exists()) uploadDir.mkdirs();
 	    	if(!operatorDir.exists()) operatorDir.mkdirs();
+	    	checkOperatorFile();
 	    	
-	    	String cachePath = LogController.baseFilePath+packageName+File.separator+"cache"+File.separator+type+"_cache.json";
+	    	String cachePath = "";
+	    	if(!TextUtils.isEmpty(type) && type.equals("page")){
+	    		cachePath = LogController.operatorPageFilePath;
+	    	}else if(!TextUtils.isEmpty(type) && type.equals("event")){
+	    		cachePath = LogController.operatorEventFilePath;
+	    	}else if(!TextUtils.isEmpty(type) && type.equals("crash")){
+	    		cachePath = LogController.operatorCrashFilePath;
+	    	}
+	    	
+	    	File cacheFile = new File(cachePath);
+	    	if(cacheFile.exists()){
+	    		long cacheSize = cacheFile.length();
+	    		long jsonSize = info.toString().getBytes().length;
+	    		if((cacheSize+jsonSize) > 16*1024){
+	        		Log.i(TAG, "size is over 16k");
+	    			copyToUploadDirAndDel(cacheFile, LogController.uploadFileDir+File.separator+cacheFile.getName());
+	    			if(!TextUtils.isEmpty(type) && type.equals("page")){
+	    				LogController.operatorPageFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_page.json";
+	    				cachePath = LogController.operatorPageFilePath;
+	    			}else if(!TextUtils.isEmpty(type) && type.equals("event")){
+	    				LogController.operatorEventFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_event.json";
+	    				cachePath = LogController.operatorEventFilePath;
+	    			}else if(TextUtils.isEmpty(type) && type.equals("crash")){
+	    				LogController.operatorCrashFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_crash.json";
+	    				cachePath = LogController.operatorCrashFilePath;
+	    			}
+	    		}
+	    	}
+	    	
 	        JSONArray jsonArray = new JSONArray();
 	        try {
 	            jsonArray.put(0, info);
@@ -469,6 +522,87 @@ public class XMAgent {
 	    }
 	    
 	    /**
+	     * 检测操作文件夹中操作文件是否为空,为空则创建
+	     */
+		private static void checkOperatorFile() {
+			if(TextUtils.isEmpty(LogController.operatorPageFilePath)){
+	    		LogController.operatorPageFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_page.json";
+	    		File operatorPageFile = new File(LogController.operatorPageFilePath);
+	    		if(!operatorPageFile.exists()){
+	    			try {
+						operatorPageFile.createNewFile();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		}
+	    	}
+	    	
+	    	if(TextUtils.isEmpty(LogController.operatorEventFilePath)){
+	    		LogController.operatorEventFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_event.json";
+	    		File operatorPageFile = new File(LogController.operatorEventFilePath);
+	    		if(!operatorPageFile.exists()){
+	    			try {
+						operatorPageFile.createNewFile();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		}
+	    	}
+	    	
+	    	if(TextUtils.isEmpty(LogController.operatorCrashFilePath)){
+	    		LogController.operatorCrashFilePath = LogController.operatorFileDir+File.separator+System.currentTimeMillis()+"_crash.json";
+	    		File operatorPageFile = new File(LogController.operatorCrashFilePath);
+	    		if(!operatorPageFile.exists()){
+	    			try {
+						operatorPageFile.createNewFile();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		}
+	    	}
+		}
+	    
+	    /**
+	     * 将操作文件夹中文件复制到上传文件夹
+	     */
+	    private static void copyToUploadDirAndDel(File fromFile,String newPath) {
+	    	CommonUtil.printLog(TAG, "copyToUploadDirAndDel:"+fromFile.getName());
+			if(!fromFile.exists()) return;
+			if(!fromFile.canRead()) return;
+			if(fromFile.exists() && fromFile.length() == 0){
+				fromFile.delete();
+				return;
+			}
+			File newFile = new File(newPath);
+			if(!newFile.getParentFile().exists()) {
+				newFile.getParentFile().mkdirs();
+			}
+			if(newFile.exists()){
+				newFile.delete();
+			}
+			try {
+				FileInputStream in = new FileInputStream(fromFile);
+				FileOutputStream out = new FileOutputStream(newFile);
+         	   byte [ ] buffer = new byte [ 1024 ] ;
+         	   int len = 0 ;
+         	   while ( ( len = in.read ( buffer ) ) != - 1 )
+         	   {
+         		   out.write ( buffer , 0 , len ) ;
+         	   }
+         	   in.close();
+         	   out.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			if(newFile.exists()){
+				fromFile.delete();
+			}
+		}
+
+		/**
 	     * 获取和拼接Activity页面上报参数
 	     * @param context
 	     * @return
@@ -482,7 +616,7 @@ public class XMAgent {
 	            info.put("start_millis", start_millis);
 	            info.put("end_millis", end_millis);
 	            info.put("duration", duration);
-	            info.put("version", CommonUtil.getVersionName(context));
+	            info.put("version", DataCore.getAppVersionName(context));
 	        } catch (JSONException e) {
 	            e.printStackTrace();
 	        }
@@ -504,7 +638,7 @@ public class XMAgent {
 	            info.put("start_millis", start_millis);
 	            info.put("end_millis", end_millis);
 	            info.put("duration", duration);
-	            info.put("version", CommonUtil.getVersionName(context));
+	            info.put("version",DataCore.getAppVersionName(context));
 	        } catch (JSONException e) {
 	            e.printStackTrace();
 	        }
@@ -527,7 +661,7 @@ public class XMAgent {
 	            info.put("time", time);
 	            info.put("event_id", eventId);
 	            info.put("label", label);
-	            info.put("version", CommonUtil.getVersionName(context));
+	            info.put("version", DataCore.getAppVersionName(context));
 	        } catch (JSONException e) {
 	            e.printStackTrace();
 	        }

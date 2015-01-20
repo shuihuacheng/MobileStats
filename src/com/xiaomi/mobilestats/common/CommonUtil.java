@@ -1,6 +1,5 @@
 package com.xiaomi.mobilestats.common;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -147,8 +146,9 @@ public class CommonUtil {
 	 */
 	public static String getTime() {
 		Date date = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		return sdf.format(date);
+//		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//		return sdf.format(date);
+		return Long.toString(date.getTime());
 	}
 
 	/**
@@ -184,9 +184,7 @@ public class CommonUtil {
 			ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
 			return cn.getShortClassName();
 		} else {
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("lost permission", "android.permission.GET_TASKS");
-			}
+			CommonUtil.printLog("no permission", "android.permission.GET_TASKS");
 			return "";
 		}
 	}
@@ -203,9 +201,7 @@ public class CommonUtil {
 				ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
 			return cn.getPackageName();
 		} else {
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("lost permission", "android.permission.GET_TASKS");
-			}
+			CommonUtil.printLog("no permission", "android.permission.GET_TASKS");
 			return null;
 		}
 	}
@@ -220,16 +216,8 @@ public class CommonUtil {
 		String osVersion = "";
 		if (checkPhoneState(context)) {
 			osVersion = android.os.Build.VERSION.RELEASE;
-			if (CommonConfig.DEBUG_MODE) {
-				printLog("android_osVersion", "OsVerson" + osVersion);
-			}
-			return osVersion;
-		} else {
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("android_osVersion", "OsVerson get failed");
-			}
-			return null;
-		}
+		} 
+		return osVersion;
 	}
 
 	/**
@@ -243,30 +231,18 @@ public class CommonUtil {
 		if (context == null) {
 			return "";
 		}
+		String deviceId = "";
 		if (checkPermissions(context, "android.permission.READ_PHONE_STATE")) {
-			String deviceId = "";
 			if (checkPhoneState(context)) {
 				TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 				deviceId = tm.getDeviceId();
 			}
-			if (deviceId != null) {
-				if (CommonConfig.DEBUG_MODE) {
-					printLog("commonUtil", "deviceId:" + deviceId);
-				}
-				return deviceId;
-			} else {
-				if (CommonConfig.DEBUG_MODE) {
-					Log.e("commonUtil", "deviceId is null");
-				}
-				return "";
-			}
 		} else {
 			if (CommonConfig.DEBUG_MODE) {
-				Log.e("lost permissioin",
-						"lost----->android.permission.READ_PHONE_STATE");
+				Log.e("lost permissioin","lost----->android.permission.READ_PHONE_STATE");
 			}
-			return "";
 		}
+		return deviceId;
 	}
 	
 	  /**
@@ -276,17 +252,16 @@ public class CommonUtil {
 	   */
 	  public static String getMacAddress(Context paramContext)
 	  {
-	    String str = null;
+	    String macAddress  = "";
 	    try
 	    {
 	        WifiManager localWifiManager = (WifiManager)paramContext.getSystemService("wifi");
 	        WifiInfo localWifiInfo = localWifiManager.getConnectionInfo();
-	        str = localWifiInfo.getMacAddress();
-	    }catch (Exception localException)
-	    {
-	    	
+	        macAddress  = localWifiInfo.getMacAddress();
+	    }catch (Exception localException) {
+	    	localException.printStackTrace();
 	    }
-	    return str;
+	    return macAddress ;
 	  }
 
 	/**
@@ -305,7 +280,6 @@ public class CommonUtil {
 
 	/**
 	 * get sdk number
-	 * 
 	 * @param paramContext
 	 * @return
 	 */
@@ -313,16 +287,10 @@ public class CommonUtil {
 		String osVersion = "";
 		if (!checkPhoneState(paramContext)) {
 			osVersion = android.os.Build.VERSION.RELEASE;
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("android_osVersion", "OsVerson" + osVersion);
-			}
-			return osVersion;
 		} else {
-			if (CommonConfig.DEBUG_MODE) {
-				Log.e("android_osVersion", "OsVerson get failed");
-			}
-			return null;
+			CommonUtil.printLog("android_osVersion", "OsVerson get failed");
 		}
+		return osVersion;
 	}
 
 	/**
@@ -616,14 +584,11 @@ public class CommonUtil {
 					result = xmlData;
 					return result.toString();
 				}
-				if (CommonConfig.DEBUG_MODE)
-					CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
+				CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
 			}
 		} catch (Exception localException) {
-			if (CommonConfig.DEBUG_MODE) {
-				CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
-				localException.printStackTrace();
-			}
+			localException.printStackTrace();
+			CommonUtil.printLog("XMAgent","Could not read "+param+" meta-data from AndroidManifest.xml.");
 		}
 		return result;
 	}

@@ -3,7 +3,13 @@ package com.xiaomi.mobilestats.data;
 import java.io.File;
 import java.io.FileInputStream;
 
+import com.xiaomi.mobilestats.common.CommonConfig;
+import com.xiaomi.mobilestats.common.CommonUtil;
+import com.xiaomi.mobilestats.common.NetworkUtil;
+import com.xiaomi.mobilestats.object.Msg;
+
 public class ReadFromFileThead extends Thread{
+	private static final String TAG = "ReadFromFileThead";
 	private String filePath;
 	
 	public ReadFromFileThead(String filePath){
@@ -15,7 +21,13 @@ public class ReadFromFileThead extends Thread{
 	public void run() {
 		super.run();
 		String fileContent = readFile(filePath);
-		//TODO 上传文件内容
+		CommonUtil.printLog(TAG, "filrePath:"+filePath);
+		Msg msg = NetworkUtil.post(CommonConfig.PREURL, fileContent);
+		if(msg.isFlag()){
+			CommonUtil.printLog(TAG, "msg.flag:"+msg.isFlag());
+			File file = new File(filePath);
+			if(file.exists()) file.delete();
+		}
 	}
 	
 	private String readFile(String filePath){

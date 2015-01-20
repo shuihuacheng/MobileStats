@@ -1,7 +1,6 @@
 package com.xiaomi.mobilestats.controller;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -15,17 +14,21 @@ import com.xiaomi.mobilestats.common.CommonConfig;
 import com.xiaomi.mobilestats.data.BasicStoreTools;
 import com.xiaomi.mobilestats.data.SendStrategyEnum;
 import com.xiaomi.mobilestats.receiver.MAlarmReceiver;
+import com.xiaomi.mobilestats.upload.UploadManager;
 
 public class LogController {
+	  private static final String TAG = "LogController";
 	  private static HandlerThread logThread = new HandlerThread("LogSenderThread");
 	  public  static boolean isOnlyWifi = false;
 	  public  SendStrategyEnum sendStragegy = SendStrategyEnum.APP_START;
 	  public  int logSendIntervalHour = 1;
 	  public  int logSendDelayedTime = 0;
-	  private WeakReference<Context> contextWR;
 	  private static Handler handler;
 	  //日志缓存目录根目录
 	  public static String baseFilePath = Environment.getExternalStorageDirectory()+File.separator;
+	  public static String operatorFileDir = baseFilePath+"cache"+File.separator+"operator";
+	  public static String uploadFileDir = baseFilePath+"cache"+File.separator+"upload";
+	  
 	  public static String operatorEventFilePath = "";
 	  public static String operatorPageFilePath = "";
 	  public static String operatorCrashFilePath = "";
@@ -36,18 +39,23 @@ public class LogController {
 	  {
 		  logThread.start();
 		  handler = new Handler(logThread.getLooper());
+		  Runnable runnable = new Runnable() {
+			
+			@Override
+			public void run() {
+				if(sendStragegy.equals(SendStrategyEnum.REAL_TIME)){
+					if(UploadManager.isHasCacheFile()){
+						UploadManager.uploadCachedUploadFiles(handler);
+					}
+					handler.postDelayed(this, CommonConfig.update_check_inteval);
+				}
+			}
+		};
+		handler.postDelayed(runnable, 1000);
 	  }
 	  
 	  public static LogController geInstance(){
 		  return instance;
-	  }
-	  
-	  private void holdWRContext(Context context)
-	  {
-	    if (context == null)
-	    	//TODO 记录错误
-	    if ((this.contextWR == null) && (context != null))
-	      this.contextWR = new WeakReference(context);
 	  }
 	  
 	  public void setSendDelayedTime(int seconds){
@@ -58,6 +66,11 @@ public class LogController {
 	  
 	  public void setSendStrategy(Context context,SendStrategyEnum sendStrategyEnum,int timeInterval,boolean onWifi){
 		  if(sendStrategyEnum.equals(SendStrategyEnum.SET_TIME_INTERVAL)){
+			  if(timeInterval<1){
+				  timeInterval = 1;
+			  }else if(timeInterval>24){
+				  timeInterval = 24;
+			  }
 			  if(timeInterval >=1 && timeInterval <=24){
 				  this.logSendIntervalHour = timeInterval;
 				  this.sendStragegy = SendStrategyEnum.SET_TIME_INTERVAL;
@@ -65,11 +78,11 @@ public class LogController {
 			        BasicStoreTools.getInstance().setSendStrategyTime(context, this.logSendIntervalHour);
 			        
 					 AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-					 Intent intent = new Intent(MAlarmReceiver.ALARM_ACTION);
-					 PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+					 Intent intent = new Intent(context,MAlarmReceiver.class);
+					 intent.setAction(MAlarmReceiver.ALARM_ACTION);
+					 PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,0);
+					 alarm.cancel(pendingIntent);
 					 alarm.setRepeating(AlarmManager.RTC_WAKEUP, CommonConfig.kContinueSessionMillis, timeInterval*3600000, pendingIntent);
-			  }else{
-			  //TODO timeInterval参数无效
 			  }
 		 }else{
 			 this.sendStragegy = sendStrategyEnum;

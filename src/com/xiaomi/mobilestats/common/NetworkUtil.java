@@ -9,6 +9,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
+import android.util.Log;
+
 import com.xiaomi.mobilestats.object.Msg;
 
 public class NetworkUtil {
@@ -19,12 +21,13 @@ public class NetworkUtil {
 		HttpClient httpclient = new DefaultHttpClient();
 		HttpPost httppost = new HttpPost(url);
 		try {
-			StringEntity se = new StringEntity("content="+data, HTTP.UTF_8);
-			se.setContentType("application/x-www-form-urlencoded");
+			StringEntity se = new StringEntity(data, HTTP.UTF_8);
+			se.setContentType("text/plain");
 			httppost.setEntity(se);
 			HttpResponse response = httpclient.execute(httppost);
 			int status = response.getStatusLine().getStatusCode();
 			result  = EntityUtils.toString(response.getEntity());
+			Log.i("test","NetworkUtil--->result:"+result);
 			if(status == HttpStatus.SC_OK){
 				msg.setFlag(true);
 				msg.setMsg(result);

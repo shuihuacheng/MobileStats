@@ -78,13 +78,13 @@ public class CrashHandler implements UncaughtExceptionHandler {
 				
 				if (CommonUtil.getSendStragegy(mContext).equals(SendStrategyEnum.APP_START) && CommonUtil.isNetworkAvailable(mContext)) {
 					if (!TextUtils.isEmpty(stacktrace.toString())) {
-						Msg msg = NetworkUtil.post(CommonConfig.PREURL + CommonConfig.errorUrl,errorJSONObject.toString());
+						Msg msg = NetworkUtil.post(CommonConfig.PREURL,errorJSONObject.toString());
 						if (!msg.isFlag()) {
-							XMAgent.saveInfoToFile("errorInfo", errorJSONObject,mContext);
+							XMAgent.saveInfoToFile("crash", errorJSONObject,mContext);
 						}
 					}
 				} else {
-					XMAgent.saveInfoToFile("errorInfo", errorJSONObject, mContext);
+					XMAgent.saveInfoToFile("crash", errorJSONObject, mContext);
 				}
 				new Handler().postDelayed(new Runnable() {
 					
