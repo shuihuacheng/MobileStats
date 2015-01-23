@@ -10,6 +10,12 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONObject;
+
+import android.util.Base64;
+
+import com.xiaomi.mobilestats.data.DecodeUtils;
+
 public class StringUtils {
 
 	// 未配置 正则表达，默认为通过
@@ -169,5 +175,14 @@ public class StringUtils {
 			hex.append(Integer.toHexString(b & 0xFF));
 		}
 		return hex.toString();
+	}
+	
+	public static String encodeJSONData(JSONObject jsonObject){
+		byte[] encodeBytes = DecodeUtils.getEncode(jsonObject.toString());
+	    if(encodeBytes != null && encodeBytes.length>0){
+	    	String base64Str = new String(Base64.encode(encodeBytes, Base64.NO_WRAP));
+	    	return base64Str+"\n";
+	    }
+		return "";
 	}
 }

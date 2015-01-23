@@ -1,60 +1,54 @@
 package com.xiaomi.mobilestats.data;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.os.Environment;
-import android.util.Base64;
+import android.text.TextUtils;
+import android.util.Log;
 
 import com.xiaomi.mobilestats.common.CommonUtil;
 
-public class WriteFileThread extends Thread{
+public class WriteFileThread extends Thread {
+	public static final String ENCODE_KEY = "c0e9fcff59ecc3b8b92939a1a2724a44";
 	private Context context;
 	private String filePath;
-	private JSONObject jsonObject;
+	private String data;
 
-	public WriteFileThread(Context context,String filePath,JSONObject jsonObject) {
+	public WriteFileThread(Context context, String filePath,String data) {
 		super();
 		this.context = context;
 		this.filePath = filePath;
-		this.jsonObject = jsonObject;
+		this.data = data;
 	}
-	
+
 	@Override
 	public void run() {
 		super.run();
-		writeToFile(this.jsonObject);
+		writeToFile(this.data);
 	}
-	
-	private void writeToFile(JSONObject jsonObject){
+
+	private void writeToFile(String data) {
 		try {
-			if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) && CommonUtil.checkPermissions(context, "android.permission.WRITE_EXTERNAL_STORAGE")){
+			if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED) && CommonUtil.checkPermissions(context, "android.permission.WRITE_EXTERNAL_STORAGE")) {
 				File file = new File(filePath);
-				if(!file.getParentFile().exists()){
+				if (!file.getParentFile().exists()) {
 					file.getParentFile().mkdirs();
 				}
-				if(!file.exists()){
+				if (!file.exists()) {
 					file.createNewFile();
 				}
-				FileInputStream in = new FileInputStream(file);
-				StringBuffer sb = new StringBuffer();
-				int i=0;
-				byte[] s = new byte[1024*4];
-				while((i=in.read(s))!=-1){
-					sb.append(new String(s,0,i));
+				FileOutputStream out = new FileOutputStream(filePath, true);
+				if(!TextUtils.isEmpty(data)){
+					Log.i("test",data);
+					out.write(data.getBytes());
 				}
-				sb.append(Base64.encodeToString(jsonObject.toString().getBytes(), Base64.DEFAULT)+"\r\n");
-				FileOutputStream out = new FileOutputStream(filePath,false);
-				out.write(sb.toString().getBytes());
 				out.flush();
 				out.close();
 			}
-		}catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-		} 
+		}
 	}
 }

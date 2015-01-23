@@ -20,7 +20,7 @@ public class LogController {
 	  private static final String TAG = "LogController";
 	  private static HandlerThread logThread = new HandlerThread("LogSenderThread");
 	  public  static boolean isOnlyWifi = false;
-	  public  SendStrategyEnum sendStragegy = SendStrategyEnum.APP_START;
+	  public  SendStrategyEnum sendStragegy = SendStrategyEnum.REAL_TIME;
 	  public  int logSendIntervalHour = 1;
 	  public  int logSendDelayedTime = 0;
 	  private static Handler handler;
@@ -43,7 +43,7 @@ public class LogController {
 			
 			@Override
 			public void run() {
-				if(sendStragegy.equals(SendStrategyEnum.REAL_TIME)){
+				if(sendStragegy.equals(SendStrategyEnum.REAL_TIME) ){
 					if(UploadManager.isHasCacheFile()){
 						UploadManager.uploadCachedUploadFiles(handler);
 					}
@@ -94,6 +94,12 @@ public class LogController {
 				 Intent intent = new Intent(MAlarmReceiver.ALARM_ACTION);
 				 PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 				 alarm.setRepeating(AlarmManager.RTC_WAKEUP, CommonConfig.kContinueSessionMillis, 24*3600000, pendingIntent);
+			 }else{
+				 AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+				 Intent intent = new Intent(context,MAlarmReceiver.class);
+				 intent.setAction(MAlarmReceiver.ALARM_ACTION);
+				 PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,0);
+				 alarm.cancel(pendingIntent);
 			 }
 		 }
 		  LogController.isOnlyWifi = onWifi;

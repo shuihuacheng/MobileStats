@@ -3,6 +3,7 @@ package com.xiaomi.mobilestats.upload;
 import java.io.File;
 
 import android.os.Handler;
+import android.util.Log;
 
 import com.xiaomi.mobilestats.controller.LogController;
 import com.xiaomi.mobilestats.data.ReadFromFileThead;
@@ -50,6 +51,7 @@ public class UploadManager {
 	}
 	
 	public static void uploadCachedUploadFiles(Handler handler){
+		Log.i("test","uploadCachedUploadFiles");
 		try {
 			File[] uploadFiles = getCacheFiles();
 			if(uploadFiles != null && uploadFiles.length>0){

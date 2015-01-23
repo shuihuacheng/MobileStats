@@ -11,6 +11,7 @@ import com.xiaomi.mobilestats.XMAgent;
 public class MAlarmReceiver extends BroadcastReceiver{
 	  public static final String ALARM_ACTION = "com.xiaomi.mobilestats.sendlog.action";
 	  
+	  
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		if(intent.getAction().equals(ALARM_ACTION)){

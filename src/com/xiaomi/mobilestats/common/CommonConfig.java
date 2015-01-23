@@ -2,7 +2,7 @@ package com.xiaomi.mobilestats.common;
 
 public class CommonConfig {
     public static boolean DEBUG_MODE = true;
-    public static String PREURL="http://10.237.2.123:8002/v1/mishop/";                 //可配置服务器地址URL
+    public static String PREURL="http://10.237.2.123:8002/v1/collect/mishop/";                 //可配置服务器地址URL
     public static long kContinueSessionMillis =  30000L;
     public static long update_check_inteval = 60000L;                      								//定时检测上传文件夹时间间隔
     

@@ -3,10 +3,6 @@ package com.xiaomi.mobilestats.common;
 import java.util.Date;
 import java.util.List;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -35,20 +31,10 @@ import com.xiaomi.mobilestats.object.LatitudeAndLongitude;
 
 public class CommonUtil {
 
-	public static void saveInfoToFile(Handler handler, String type, String filePath,JSONObject info, Context context) {
-		JSONArray jsonArray = new JSONArray();
-		try {
-				jsonArray.put(0, info);
+	public static void saveInfoToFile(Handler handler, String type, String filePath,String data, Context context) {
 			if (handler != null) {
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put(type, jsonArray);
-				handler.post(new WriteFileThread(context,filePath,jsonObject));  
-			} else {
-				CommonUtil.printLog(CommonUtil.getActivityName(context),"handler--null");
+				handler.post(new WriteFileThread(context,filePath,data));  
 			}
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**

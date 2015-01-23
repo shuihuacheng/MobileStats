@@ -86,7 +86,7 @@ public class DataCore extends BasicStoreToolsBase{
 	   * @param paramContext
 	   * @return
 	   */
-	  public static String getDeviceId(TelephonyManager paramTelephonyManager, Context paramContext)
+	  public static String getDeviceId(Context paramContext)
 	  {
 		  if(TextUtils.isEmpty(mobileInfo.deviceId)) 
 			  mobileInfo.deviceId = CommonUtil.getDeviceID(paramContext);
