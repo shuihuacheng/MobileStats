@@ -8,7 +8,6 @@ import android.preference.PreferenceManager;
 import android.text.TextUtils;
 
 public class BasicStoreToolsBase {
-	  private static final String TAG = "BasicStoreToolsBase";
 	  private static final String XM_STAT_SEND_REM = "__XiaoMi_Stat_SendRem";
 	  
 	  private SharedPreferences sp;
@@ -16,14 +15,14 @@ public class BasicStoreToolsBase {
 
 	  private SharedPreferences getXMSendRemSP(Context paramContext)
 	  {
-	    if (this.sp == null)
+	    if (this.sp == null && paramContext != null)
 	      this.sp = paramContext.getSharedPreferences(XM_STAT_SEND_REM, 0);
 	    return this.sp;
 	  }
 
 	  private SharedPreferences getDefaultSP(Context paramContext)
 	  {
-	    if (this.sp_default == null)
+	    if (this.sp_default == null && paramContext != null)
 	      this.sp_default = PreferenceManager.getDefaultSharedPreferences(paramContext);
 	    return this.sp_default;
 	  }

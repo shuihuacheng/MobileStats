@@ -3,24 +3,29 @@ package com.xiaomi.mobilestats.upload;
 import java.io.File;
 
 import android.os.Handler;
-import android.util.Log;
 
+import com.xiaomi.mobilestats.common.StringUtils;
 import com.xiaomi.mobilestats.controller.LogController;
 import com.xiaomi.mobilestats.data.ReadFromFileThead;
 
 public class UploadManager {
 	private static final String TAG = "UploadManager";
+
 	/**
 	 * 判断是否有缓存文件
+	 * 
 	 * @param context
 	 * @return
 	 */
-	public static boolean isHasCacheFile(){
+	public static boolean isHasCacheFile() {
 		try {
+			if (StringUtils.isEmpty(LogController.uploadFileDir)) {
+				return false;
+			}
 			File cacheFileDir = new File(LogController.uploadFileDir);
-			if(cacheFileDir.exists() && cacheFileDir.isDirectory()){
+			if (cacheFileDir.exists() && cacheFileDir.isDirectory()) {
 				File[] childFiles = cacheFileDir.listFiles();
-				if(childFiles != null && childFiles.length>0){
+				if (childFiles != null && childFiles.length > 0) {
 					return true;
 				}
 			}
@@ -29,18 +34,18 @@ public class UploadManager {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * 取得所有缓存文件
 	 * @param context
 	 * @return
 	 */
-	public static File[] getCacheFiles(){
+	public static File[] getCacheFiles() {
 		try {
 			File cacheFileDir = new File(LogController.uploadFileDir);
-			if(cacheFileDir.exists() && cacheFileDir.isDirectory()){
+			if (cacheFileDir.exists() && cacheFileDir.isDirectory()) {
 				File[] childFiles = cacheFileDir.listFiles();
-				if(childFiles != null && childFiles.length>0){
+				if (childFiles != null && childFiles.length > 0) {
 					return childFiles;
 				}
 			}
@@ -49,17 +54,16 @@ public class UploadManager {
 		}
 		return null;
 	}
-	
-	public static void uploadCachedUploadFiles(Handler handler){
-		Log.i("test","uploadCachedUploadFiles");
+
+	public static void uploadCachedUploadFiles(Handler handler) {
 		try {
 			File[] uploadFiles = getCacheFiles();
-			if(uploadFiles != null && uploadFiles.length>0){
+			if (uploadFiles != null && uploadFiles.length > 0) {
 				for (File file : uploadFiles) {
 					Thread readFileThread = new ReadFromFileThead(file.getPath());
-					if(handler != null){
+					if (handler != null) {
 						handler.post(readFileThread);
-					}else{
+					} else {
 						new Handler().post(readFileThread);
 					}
 				}
@@ -68,5 +72,5 @@ public class UploadManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 }

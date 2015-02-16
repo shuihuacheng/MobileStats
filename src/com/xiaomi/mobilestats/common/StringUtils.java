@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,7 +55,7 @@ public class StringUtils {
 	/**
 	 * 判断给定字符串是否空白串。 空白串是指由空格、制表符、回车符、换行符组成的字符串 若输入字符串为null或空字符串，返回true
 	 * 
-	 * @param input
+	 * @param inputencodeJSONData
 	 * @return boolean
 	 */
 	public static boolean isEmpty(String input) {
@@ -167,7 +166,6 @@ public class StringUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException("Huh, UTF-8 should be supported?", e);
 		}
-
 		StringBuilder hex = new StringBuilder(hash.length * 2);
 		for (byte b : hash) {
 			if ((b & 0xFF) < 0x10)
@@ -176,13 +174,34 @@ public class StringUtils {
 		}
 		return hex.toString();
 	}
-	
-	public static String encodeJSONData(JSONObject jsonObject){
-		byte[] encodeBytes = DecodeUtils.getEncode(jsonObject.toString());
-	    if(encodeBytes != null && encodeBytes.length>0){
-	    	String base64Str = new String(Base64.encode(encodeBytes, Base64.NO_WRAP));
-	    	return base64Str+"\n";
-	    }
+
+	public static final String KEY_Sprite = "\n";
+
+	public static String encodeJSONData(JSONObject jsonObject) {
+		if (jsonObject != null) {
+			CommonUtil.printLog(CommonConfig.TAG, jsonObject.toString().trim());
+			byte[] encodeBytes = DecodeUtils.getEncode(jsonObject.toString().trim());
+			if (encodeBytes != null && encodeBytes.length > 0) {
+				String base64Str = new String(Base64.encode(encodeBytes, Base64.NO_WRAP));
+				String AESStr = AESUtils.encrypt(base64Str, AESUtils.ENCODE_KEY);
+				return AESStr + KEY_Sprite;
+			}
+		}
 		return "";
 	}
+	
+	private static String decodeString(String str) {
+		if (!StringUtils.isEmpty(str)) {
+			try {
+				String aesString = AESUtils.desEncrypt(str, AESUtils.ENCODE_KEY);
+				byte[] base64Bytes = Base64.decode(aesString, Base64.NO_WRAP);
+				String result = DecodeUtils.getDenCode(base64Bytes);
+				return result;
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+		}
+		return null;
+	}
+
 }

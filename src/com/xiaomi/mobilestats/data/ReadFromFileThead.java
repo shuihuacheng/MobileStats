@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 
 import com.xiaomi.mobilestats.common.CommonConfig;
-import com.xiaomi.mobilestats.common.CommonUtil;
 import com.xiaomi.mobilestats.common.NetworkUtil;
 import com.xiaomi.mobilestats.object.Msg;
 
@@ -21,10 +20,10 @@ public class ReadFromFileThead extends Thread{
 	public void run() {
 		super.run();
 		String fileContent = readFile(filePath);
-		CommonUtil.printLog(TAG, "filrePath:"+filePath);
+//		CommonUtil.printLog(TAG, "filrePath:"+filePath);
 		Msg msg = NetworkUtil.post(CommonConfig.PREURL, fileContent);
+//		CommonUtil.printLog(TAG, "msg.flag:"+msg.isFlag());
 		if(msg.isFlag()){
-			CommonUtil.printLog(TAG, "msg.flag:"+msg.isFlag());
 			File file = new File(filePath);
 			if(file.exists()) file.delete();
 		}

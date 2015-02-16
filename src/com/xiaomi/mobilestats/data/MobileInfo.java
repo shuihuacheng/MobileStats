@@ -15,4 +15,5 @@ public class MobileInfo {
 	public String gpsLocationSetting;
 	public String wifiLocationSetting;
 	public String linkedWay;
+	public String sessionId;
 }

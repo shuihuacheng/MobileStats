@@ -35,8 +35,6 @@ public class DecodeUtils {
 	}
 
 	public static String getDenCode(byte[] bytes) {
-		System.out.println("  +++   ");
-
 		int[] vResult = new int[bytes.length % 4 == 0 ? bytes.length / 4 : bytes.length / 4 + 1];
 		int nPos = 0;
 		for (int i = 0; i < bytes.length; i += 4) {

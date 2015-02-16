@@ -1,17 +1,20 @@
 package com.xiaomi.mobilestats.common;
 
 public class CommonConfig {
-    public static boolean DEBUG_MODE = true;
-    public static String PREURL="http://10.237.2.123:8002/v1/collect/mishop/";                 //可配置服务器地址URL
+    public static boolean DEBUG_MODE  =  true;
+    public static String PREURL="http://10.237.2.123:6015/6015/data/dapp/";   //可配置服务器地址URL
     public static long kContinueSessionMillis =  30000L;
     public static long update_check_inteval = 60000L;                      								//定时检测上传文件夹时间间隔
+    public static final String DEFAULT_CACHE_DIR = "StatCache";
+    public static final String TAG = "MobileStats";    //全局日志TAG
     
-//    public static final Object saveOnlineConfigMutex = new Object();	
-//    public static final String eventUrl="/xm/postEvent";
-//    public static final String errorUrl = "/xm/postErrorLog";
-//    public static final String clientDataUrl = "/xm/postClientData";
-//    public static final String updataUrl = "/xm/getApplicationUpdate";
-//    public static final String activityUrl = "/xm/postActivityLog";
-//    public static final String onlineConfigUrl ="/xm/getOnlineConfiguration";
-//    public static final String uploadUrl = "/xm/uploadLog";
+    public static void setDebugOn(boolean isDebugOn){
+    	DEBUG_MODE = isDebugOn;
+    	if(isDebugOn){
+    		PREURL="http://10.237.2.123:6015/6015/data/dapp/";
+    	}else{
+//    		PREURL="https://api.d.xiaomi.com/6015/data/dapp/";
+    		PREURL="http://data.v.mi.com/v1/data/dapp/";
+    	}
+    }
 }

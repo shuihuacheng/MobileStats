@@ -1,61 +1,47 @@
 package com.xiaomi.mobilestats.common;
 
-import java.security.Key;
-import java.security.SecureRandom;
-
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import android.util.Base64;
 
-/**
- * @author carlos carlosk@163.com
- * @version 创建时间：2012-5-17 上午9:48:35 类说明
- */
-
 public class AESUtils {
-	private static final String AESTYPE = "AES/ECB/PKCS5Padding";
+	private static final String AESTYPE = "AES/CBC/PKCS5Padding";
+	public static final String ENCODE_KEY = "c0e9fcff59ecc3b8";
+	private static final String IV = "b92939a1a2724a44";
 
-	public static String AES_Encrypt(String keyStr, String plainText) {
-		byte[] encrypt = null;
+	public static String encrypt(String content, String key) {
 		try {
-			Key key = generateKey(keyStr);
 			Cipher cipher = Cipher.getInstance(AESTYPE);
-			cipher.init(Cipher.ENCRYPT_MODE, key);
-			encrypt = cipher.doFinal(plainText.getBytes());
+
+			SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
+			IvParameterSpec ivspec = new IvParameterSpec(IV.getBytes());
+
+			cipher.init(Cipher.ENCRYPT_MODE, keyspec, ivspec);
+			byte[] encrypted = cipher.doFinal(content.getBytes());
+			return new String(Base64.encode(encrypted, Base64.NO_WRAP));
 		} catch (Exception e) {
 			e.printStackTrace();
-		}
-		return new String(Base64.encode(encrypt, Base64.DEFAULT));
-	}
-
-	public static String AES_Decrypt(String keyStr, String encryptData) {
-		byte[] decrypt = null;
-		try {
-			Key key = generateKey(keyStr);
-			Cipher cipher = Cipher.getInstance(AESTYPE);
-			cipher.init(Cipher.DECRYPT_MODE, key);
-			decrypt = cipher.doFinal(Base64.decode(encryptData, Base64.DEFAULT));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		if (decrypt != null) {
-			return new String(decrypt).trim();
-		} else
 			return null;
+		}
 	}
 
-	private static Key generateKey(String key) throws Exception {
+	public static String desEncrypt(String content, String key) {
 		try {
-			SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "AES");
-			return keySpec;
+			byte[] encrypted = Base64.decode(content, Base64.NO_WRAP);
+
+			Cipher cipher = Cipher.getInstance(AESTYPE);
+			SecretKeySpec keyspec = new SecretKeySpec(key.getBytes(), "AES");
+			IvParameterSpec ivspec = new IvParameterSpec(IV.getBytes());
+			cipher.init(Cipher.DECRYPT_MODE, keyspec, ivspec);
+
+			byte[] original = cipher.doFinal(encrypted);
+			String originalString = new String(original);
+			return originalString;
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw e;
+			return null;
 		}
-
 	}
 }

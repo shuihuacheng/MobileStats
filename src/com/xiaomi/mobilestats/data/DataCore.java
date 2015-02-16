@@ -1,11 +1,16 @@
 package com.xiaomi.mobilestats.data;
 
+import java.text.ParseException;
+
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.xiaomi.mobilestats.common.CommonUtil;
+import com.xiaomi.mobilestats.common.StringUtils;
 
 public class DataCore extends BasicStoreToolsBase{
 	
@@ -16,41 +21,47 @@ public class DataCore extends BasicStoreToolsBase{
 	}
 
 	public static String getAppkey(Context context){
-		if(TextUtils.isEmpty(mobileInfo.appKey)){
-			String savedAppkey = BasicStoreTools.getInstance().getAppKey(context);
-			if(!TextUtils.isEmpty(savedAppkey)){
-				mobileInfo.appKey = savedAppkey;
-			}else{
-				String xmlAppKey = CommonUtil.getAppKey(context);
-				if(!TextUtils.isEmpty(xmlAppKey)){
-					mobileInfo.appKey = xmlAppKey;
-					BasicStoreTools.getInstance().setAppKey(context, xmlAppKey);
+		if(mobileInfo != null && TextUtils.isEmpty(mobileInfo.appKey)){
+			if(context != null){
+				String savedAppkey = BasicStoreTools.getInstance().getAppKey(context);
+				if(!TextUtils.isEmpty(savedAppkey)){
+					mobileInfo.appKey = savedAppkey;
+				}else{
+					String xmlAppKey = CommonUtil.getAppKey(context);
+					if(!TextUtils.isEmpty(xmlAppKey)){
+						mobileInfo.appKey = xmlAppKey;
+						BasicStoreTools.getInstance().setAppKey(context, xmlAppKey);
+					}
 				}
-			}
+			} 
+			return mobileInfo.appKey;
 		}
-		return mobileInfo.appKey;
+		return "";
 	}  
 	
 	  /**
 	   * 获取App渠道
-	   * @param paramContext
+	   * @param context
 	   * @return
 	   */
-	  public static String getAppChannel(Context paramContext)
+	  public static String getAppChannel(Context context)
 	  {
-	      if (TextUtils.isEmpty(mobileInfo.appChannel)){
-	    	  String spAppChannel = BasicStoreTools.getInstance().getAppChannel(paramContext);
-	  	       if(!TextUtils.isEmpty(spAppChannel)){
-	  	    	   mobileInfo.appChannel = spAppChannel;
-	  	       }else{
-	  	    	   String xmlAppChannel = CommonUtil.getAppChannel(paramContext);
-	  	    	   if(!TextUtils.isEmpty(xmlAppChannel)){
-	  	    		   mobileInfo.appChannel = xmlAppChannel;
-	  	    		   BasicStoreTools.getInstance().setAppChannel(paramContext, xmlAppChannel);
-	  	    	   }
-	  	       }
+	      if (mobileInfo != null && TextUtils.isEmpty(mobileInfo.appChannel)){
+	    	  if(context != null){
+	    		  String spAppChannel = BasicStoreTools.getInstance().getAppChannel(context);
+	    		  if(!TextUtils.isEmpty(spAppChannel)){
+	    			  mobileInfo.appChannel = spAppChannel;
+	    		  }else{
+	    			  String xmlAppChannel = CommonUtil.getAppChannel(context);
+	    			  if(!TextUtils.isEmpty(xmlAppChannel)){
+	    				  mobileInfo.appChannel = xmlAppChannel;
+	    				  BasicStoreTools.getInstance().setAppChannel(context, xmlAppChannel);
+	    			  }
+	    		  }
+	    	  } 
+	    	  return mobileInfo.appChannel;
 	      }
-	    return mobileInfo.appChannel;
+	      return "";
 	  }
 	  
 	/**
@@ -60,22 +71,19 @@ public class DataCore extends BasicStoreToolsBase{
 	 */
 	public static String getMacID(Context context)
 	  {
-	    if (TextUtils.isEmpty(mobileInfo.macID))
-	    {
-	      String savedMac = BasicStoreTools.getInstance().getAppDeviceMac(context);
-	      if (TextUtils.isEmpty(savedMac))
-	      {
-	        String str2 = CommonUtil.getMacAddress(context);
-	        if (str2 != null)
-	        {
-	          if (TextUtils.isEmpty(mobileInfo.macID)){
-	        	  BasicStoreTools.getInstance().setAppDeviceMac(context, mobileInfo.macID);
-	          }
-	        }
-	      }else
-	      {
-	        mobileInfo.macID= savedMac;
-	      }
+	    if (mobileInfo != null && TextUtils.isEmpty(mobileInfo.macID)){
+		     if(context != null){
+		    	 String savedMac = BasicStoreTools.getInstance().getAppDeviceMac(context);
+		    	 if (!TextUtils.isEmpty(savedMac)) {
+		    		 mobileInfo.macID= savedMac;
+		    	 }else {
+		    		 String macStr = CommonUtil.getMacAddress(context);
+		    		 if (!TextUtils.isEmpty(macStr)){
+		    			 mobileInfo.macID = macStr;
+	    				 BasicStoreTools.getInstance().setAppDeviceMac(context, macStr);
+		    		 }
+		    	 }
+		     }
 	    }
 	    return mobileInfo.macID;
 	  }
@@ -83,14 +91,18 @@ public class DataCore extends BasicStoreToolsBase{
 	  /**
 	   * 获取DeviceId
 	   * @param paramTelephonyManager
-	   * @param paramContext
+	   * @param context
 	   * @return
 	   */
-	  public static String getDeviceId(Context paramContext)
+	  public static String getDeviceId(Context context)
 	  {
-		  if(TextUtils.isEmpty(mobileInfo.deviceId)) 
-			  mobileInfo.deviceId = CommonUtil.getDeviceID(paramContext);
-	    return mobileInfo.deviceId;
+		  if(mobileInfo != null && TextUtils.isEmpty(mobileInfo.deviceId) ) {
+			  if(context != null){
+				  mobileInfo.deviceId = CommonUtil.getDeviceID(context);
+			  }
+			  return mobileInfo.deviceId;
+		  }
+		  return "";
 	  }
 
 	  public static String getXMSDKVersion()
@@ -100,14 +112,18 @@ public class DataCore extends BasicStoreToolsBase{
 	  
 	  /**
 	   * 获取App的VersionCode
-	   * @param paramContext
+	   * @param context
 	   * @return
 	   */
-	  public static int getAppVersionCode(Context paramContext)
+	  public static int getAppVersionCode(Context context)
 	  {
-	    if (mobileInfo.appVersionCode == -1)
-	      mobileInfo.appVersionCode = CommonUtil.getVersionCode(paramContext);
-	    return mobileInfo.appVersionCode;
+	    if (mobileInfo != null && mobileInfo.appVersionCode == -1){
+	    	if(context != null){
+	    		mobileInfo.appVersionCode = CommonUtil.getVersionCode(context);
+	    	}
+	    	return mobileInfo.appVersionCode;
+	    }
+	    return -1;
 	  }
 
 	  /**
@@ -117,26 +133,19 @@ public class DataCore extends BasicStoreToolsBase{
 	   */
 	  public static String getAppVersionName(Context paramContext)
 	  {
-	    if (TextUtils.isEmpty(mobileInfo.appVersionName))
-	      mobileInfo.appVersionName = CommonUtil.getVersionName(paramContext);
+	    if (TextUtils.isEmpty(mobileInfo.appVersionName) && paramContext != null){
+	    	mobileInfo.appVersionName = CommonUtil.getVersionName(paramContext);
+	    }
 	    return mobileInfo.appVersionName;
 	  }
 
-	  public static String getOperator(TelephonyManager paramTelephonyManager)
+	  public static String getOperator(TelephonyManager tm)
 	  {
-	    if (TextUtils.isEmpty(mobileInfo.networkOperator))
-	      mobileInfo.networkOperator = paramTelephonyManager.getNetworkOperator();
+	    if (TextUtils.isEmpty(mobileInfo.networkOperator) && tm != null)
+	      mobileInfo.networkOperator = tm.getNetworkOperator();
 	    return mobileInfo.networkOperator;
 	  }
 
-	  public static String getLinkedWay(Context paramContext)
-	  {
-	    if (TextUtils.isEmpty(mobileInfo.linkedWay)){
-	    	//TODO获取linkedWay
-	    }
-	    return mobileInfo.linkedWay;
-	  }
-	  
 	  /**
 	   * 获取SDK版本
 	   * @return
@@ -165,41 +174,32 @@ public class DataCore extends BasicStoreToolsBase{
 	    	mobileInfo.phoneModel = Build.MODEL;
 	    return mobileInfo.phoneModel;
 	  }
-
-	  /**
-	   * 检测是否获取WIFI位置信息
-	   * @param paramContext
-	   * @return
-	   */
-	  public static boolean checkWifiLocationSetting(Context paramContext)
-	  {
-	    String str = "false";
-	    //TODO 检测Manifest文件中配置  XM_WIFI_LOCATION
-	    return (str == null) || (!str.toLowerCase().equals("false"));
+	  
+	  public static String getCurrentSessionId(Context context){
+		  if(TextUtils.isEmpty(mobileInfo.sessionId) && context != null){
+			  mobileInfo.sessionId = generateSeesion(context);
+		  }
+		  return mobileInfo.sessionId;
 	  }
-
-	  /**
-	   * 检测是否获取GPS位置信息
-	   * @param paramContext
-	   * @return
-	   */
-	  public static boolean checkGPSLocationSetting(Context paramContext)
-	  {
-	    String str = "false";
-	    //TODO 检测Manifest文件中配置
-	    return (str == null) || (!str.toLowerCase().equals("false"));
-	  }
-
-	  /**
-	   * 检测是否获取基站位置信息
-	   * @param paramContext
-	   * @return
-	   */
-	  public static boolean checkCellLocationSetting(Context paramContext)
-	  {
-	    String str = "false";
-	    //	    //TODO 检测Manifest文件中配置 XM_CELL_LOCATION
-	    return (str == null) || (!str.toLowerCase().equals("false"));
-	  }
-
+	  
+		/**
+		 * 生成唯一SeesionId
+		 * @param context
+		 * @return
+		 * @throws ParseException
+		 */
+		private static String generateSeesion(Context context) {
+			String sessionId = "";
+			if(context != null){
+				String str = DataCore.getAppkey(context)+DataCore.getDeviceId(context)+System.currentTimeMillis();
+				if (str != null) {
+					sessionId = StringUtils.md5(str);
+					SharedPreferences preferences = context.getSharedPreferences("XM_sessionID", Context.MODE_PRIVATE);
+					Editor edit = preferences.edit();
+					edit.putString("session_id", sessionId);
+					edit.commit();
+				}
+			}
+			return sessionId;
+		}
 }
