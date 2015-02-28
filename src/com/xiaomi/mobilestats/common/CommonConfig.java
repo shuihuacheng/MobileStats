@@ -11,10 +11,10 @@ public class CommonConfig {
     public static void setDebugOn(boolean isDebugOn){
     	DEBUG_MODE = isDebugOn;
     	if(isDebugOn){
-    		PREURL="http://10.237.2.123:6015/6015/data/dapp/";
+    		PREURL="http://10.237.2.123:6015/6015/data/mishop/";
     	}else{
 //    		PREURL="https://api.d.xiaomi.com/6015/data/dapp/";
-    		PREURL="http://data.v.mi.com/v1/data/dapp/";
+    		PREURL="http://data.v.mi.com/v1/data/mishop/";
     	}
     }
 }

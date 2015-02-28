@@ -61,7 +61,7 @@ public class CrashHandler implements UncaughtExceptionHandler {
 				JSONObject errorJSONObject = getErrorInfoJSONString(mContext);
 				String encodeInfo = StringUtils.encodeJSONData(errorJSONObject);
 				
-				if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(mContext)) {
+				if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(mContext) && !NetType.isNet2G_DOWN(mContext)) {
 					if (!TextUtils.isEmpty(throwableInfo)) {
 						Msg msg = NetworkUtil.post(CommonConfig.PREURL,encodeInfo);
 						if (!msg.isFlag()) {

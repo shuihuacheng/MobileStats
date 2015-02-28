@@ -16,6 +16,7 @@ import com.xiaomi.mobilestats.common.CommonConfig;
 import com.xiaomi.mobilestats.common.CommonUtil;
 import com.xiaomi.mobilestats.common.CrashHandler;
 import com.xiaomi.mobilestats.common.EncodeJsonUtil;
+import com.xiaomi.mobilestats.common.NetType;
 import com.xiaomi.mobilestats.common.NetworkUtil;
 import com.xiaomi.mobilestats.common.StringUtils;
 import com.xiaomi.mobilestats.controller.LogController;
@@ -437,7 +438,8 @@ public class StatService {
 
 		String encodeInfo = EncodeJsonUtil.getEncodeActivityInfo(context, startMillis, endMillis, duration);
 
-		if (CommonUtil.isNetworkAvailable(context) && LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)) {
+//		if (CommonUtil.isNetworkAvailable(context) && LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME)) {
+		if(checkRealUpdate(context)){
 			Msg msg = NetworkUtil.post(CommonConfig.PREURL, encodeInfo);
 			if (!msg.isFlag()) {
 				saveInfoToFile("page", encodeInfo, context);
@@ -468,7 +470,7 @@ public class StatService {
 		}
 		String encodeInfo = getEncodePageInfo(context, object, pageName);
 
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("page", encodeInfo, context);
 			} else {
@@ -488,7 +490,7 @@ public class StatService {
 		}
 		String encodeInfo = EncodeJsonUtil.getEncodeEventInfo(context, eventId, label);
 
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("event", encodeInfo, context);
 			} else {
@@ -508,7 +510,7 @@ public class StatService {
 		}
 		String encodeInfo = EncodeJsonUtil.getEncodeExtensibleEventInfo(context, eventId, label, map);
 
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("event", encodeInfo, context);
 			} else {
@@ -528,7 +530,7 @@ public class StatService {
 		}
 		String encodeInfo = EncodeJsonUtil.getEncodeExtensibleErrorInfo(context, exception, map);
 
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("error", encodeInfo, context);
 			} else {
@@ -548,7 +550,7 @@ public class StatService {
 		}
 		String encodeInfo = EncodeJsonUtil.getEncodeNetErrorInfo(context, url, exception, map);
 
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("error", encodeInfo, context);
 			} else {
@@ -576,7 +578,7 @@ public class StatService {
 		DataCore.getCurrentSessionId(context);
 
 		String encodeInfo = EncodeJsonUtil.getEncodeClientDataInfo(context, postLocationInfo, session_id);
-		if (LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context)) {
+		if(checkRealUpdate(context)){
 			if (LogController.isOnlyWifi && !CommonUtil.isWiFiActive(context)) {
 				saveInfoToFile("client", encodeInfo, context);
 			} else {
@@ -646,4 +648,10 @@ public class StatService {
 		}
 	}
 
+	private static boolean checkRealUpdate(Context context){
+		if(LogController.geInstance().sendStragegy.equals(SendStrategyEnum.REAL_TIME) && CommonUtil.isNetworkAvailable(context) && !NetType.isNet2G_DOWN(context)){
+			return true;
+		}
+		return false;
+	}
 }

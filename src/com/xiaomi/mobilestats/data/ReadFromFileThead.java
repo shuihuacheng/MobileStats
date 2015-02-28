@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 
 import com.xiaomi.mobilestats.common.CommonConfig;
 import com.xiaomi.mobilestats.common.NetworkUtil;
+import com.xiaomi.mobilestats.controller.FileLruCache;
 import com.xiaomi.mobilestats.object.Msg;
 
 public class ReadFromFileThead extends Thread{
@@ -26,6 +27,7 @@ public class ReadFromFileThead extends Thread{
 		if(msg.isFlag()){
 			File file = new File(filePath);
 			if(file.exists()) file.delete();
+			FileLruCache.getInstance().removeFile(file.getName());
 		}
 	}
 	

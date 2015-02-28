@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Timer;
 
 import android.content.Context;
@@ -15,6 +16,8 @@ import android.text.TextUtils;
 
 import com.xiaomi.mobilestats.common.CommonConfig;
 import com.xiaomi.mobilestats.common.CommonUtil;
+import com.xiaomi.mobilestats.common.FileNameComparator;
+import com.xiaomi.mobilestats.common.NetType;
 import com.xiaomi.mobilestats.common.StringUtils;
 import com.xiaomi.mobilestats.data.BasicStoreTools;
 import com.xiaomi.mobilestats.data.SendStrategyEnum;
@@ -39,6 +42,8 @@ public class LogController {
 	public static String operatorCrashFilePath = "";
 	public static String operatorErrorFilePath = "";
 	public static String operatorClientFilePath = "";
+	
+	public static boolean is2GDownNet = false;
 
 	private static LogController instance = new LogController();
 
@@ -91,6 +96,8 @@ public class LogController {
 		if (context == null) {
 			return;
 		}
+		NetType.isNet2G_DOWN(context);
+		
 		checkOrCreate(context);
 		firstCopyLogToUploadFloder(context);
 		if (timer != null) {
@@ -121,10 +128,10 @@ public class LogController {
 		BasicStoreTools.getInstance().setSendStrategy(context, this.sendStragegy.ordinal());
 		LogController.isOnlyWifi = onWifi;
 		if (this.sendStragegy.equals(SendStrategyEnum.SET_TIME_INTERVAL)) {
-			setSendStrategySetTimer(context, timeInterval, lastSendStrategy);
+			setSendStrategySetTimer(context, timeInterval, lastSendTime);
 		} else {
 			if (this.sendStragegy.equals(SendStrategyEnum.ONCE_A_DAY)) {
-				setSendStrategySetOnday(context, lastSendStrategy);
+				setSendStrategySetOneDay(context, lastSendTime);
 			} else {
 				if (this.sendStragegy.equals(SendStrategyEnum.REAL_TIME)) {
 					setSendStrategyRealTime(context);
@@ -159,7 +166,7 @@ public class LogController {
 		}
 	}
 
-	private void setSendStrategySetOnday(Context context, long lastSendTime) {
+	private void setSendStrategySetOneDay(Context context, long lastSendTime) {
 		if (context == null) {
 			return;
 		}
@@ -167,9 +174,15 @@ public class LogController {
 			BasicStoreTools.getInstance().setSendStrategyTime(context, 24 * 60);
 			if (lastSendTime == 0) {
 				BasicStoreTools.getInstance().setLastSendTime(context, System.currentTimeMillis());
+				lastSendTime = BasicStoreTools.getInstance().getLastSendTime(context);
 			}
 			timer = new Timer();
-			timer.schedule(new MTimerTask(), CommonConfig.kContinueSessionMillis, 24 * 3600000);
+			long diffTime = System.currentTimeMillis()-lastSendTime;
+			if(diffTime >= 0 && diffTime <  24*3600000){
+				timer.schedule(new MTimerTask(),24*3600000-(System.currentTimeMillis()-lastSendTime), 24 * 3600000);
+			}else{
+				timer.schedule(new MTimerTask(),CommonConfig.kContinueSessionMillis, 24 * 3600000);
+			}
 		}
 	}
 
@@ -199,6 +212,9 @@ public class LogController {
 	public static void firstCopyLogToUploadFloder(Context context) {
 		CommonUtil.printLog(CommonConfig.TAG, "firstCopyLogToUpload");
 		LogController.checkOrCreate(context);
+		
+		CommonUtil.printLog(CommonConfig.TAG, "File cache size:"+FileLruCache.getInstance().getCacheHashMap().size());
+		checkUpdateCache();
 		try {
 			File operatorDir = new File(LogController.operatorFileDir);
 			File[] operatorFiles = operatorDir.listFiles();
@@ -206,11 +222,46 @@ public class LogController {
 				for (File file : operatorFiles) {
 					copyToUploadDirAndDel(file, LogController.uploadFileDir + File.separator + file.getName());
 				}
+				clearOperatorFilePath();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * 第一次拷贝操作文件夹文件到待提交文件夹后清空日志文件路径
+	 */
+	private static void clearOperatorFilePath() {
+		LogController.operatorEventFilePath = "";
+		LogController.operatorPageFilePath = "";
+		LogController.operatorCrashFilePath = "";
+		LogController.operatorErrorFilePath = "";
+		LogController.operatorClientFilePath = "";
+	}
+	
+	private static void checkUpdateCache() {
+		if(FileLruCache.getInstance().getCacheHashMap().isEmpty()){
+			try {
+				File uploadDir = new File(LogController.uploadFileDir);
+				File[] uploadFiles = uploadDir.listFiles();
+				if(uploadFiles != null && uploadFiles.length>0){
+					//按文件名称中时间升序排序
+					sortUploadFiles(uploadFiles);
+					for (int i = 0; i < uploadFiles.length; i++) {
+						FileLruCache.getInstance().putFile(uploadFiles[i].getName(), uploadFiles[i]);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
+	private static void sortUploadFiles(File[] uploadFiles) {
+		if(uploadFiles != null && uploadFiles.length>0){
+			Arrays.sort(uploadFiles, new FileNameComparator());
+		}
 	}
 
 	/**
@@ -246,6 +297,7 @@ public class LogController {
 		}
 		if (newFile.exists()) {
 			fromFile.delete();
+			FileLruCache.getInstance().putFile(newFile.getName(), newFile);
 		}
 	}
 

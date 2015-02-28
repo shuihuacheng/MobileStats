@@ -1,5 +1,7 @@
 package com.xiaomi.mobilestats.common;
 
+import com.xiaomi.mobilestats.controller.LogController;
+
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -14,13 +16,16 @@ public class NetType {
 	public static final int NETTYPE_WIFI = 4;
 	
 	public static boolean isNet2G_DOWN(Context context){
+		if(context == null) return true;
 		int netType = getNetType(context);
 		boolean result = (netType == NETTYPE_2G|| netType == NETTYPE_WAP);
+		LogController.is2GDownNet = result;
 		return result;
 	}
 	
 	@SuppressWarnings("deprecation")
 	public static int getNetType(Context context){
+		if(context == null) return -1;
 		int netType = -1;
 		ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = cm.getActiveNetworkInfo();
@@ -33,7 +38,7 @@ public class NetType {
 				if(!StringUtils.isEmpty(proxyHost)){
 					netType = NETTYPE_WAP;
 				}else{
-					if(isFastMobileNetwork(context)){
+					if(!isFastMobileNetwork(context)){
 						netType = NETTYPE_2G;
 					}else{
 						netType = NETTYPE_3G_UP;
@@ -47,6 +52,7 @@ public class NetType {
 	}
 	
 	private static boolean isFastMobileNetwork(Context context){
+		if(context == null) return false;
 		TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 		int networkType = tm.getNetworkType();
 		switch(networkType){
@@ -90,4 +96,5 @@ public class NetType {
 				return false;
 		}
 	}
+	
 }

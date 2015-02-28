@@ -34,6 +34,8 @@ public class DataCore extends BasicStoreToolsBase{
 					}
 				}
 			} 
+		}
+		if(mobileInfo != null){
 			return mobileInfo.appKey;
 		}
 		return "";
@@ -59,6 +61,8 @@ public class DataCore extends BasicStoreToolsBase{
 	    			  }
 	    		  }
 	    	  } 
+	      }
+	      if(mobileInfo != null){
 	    	  return mobileInfo.appChannel;
 	      }
 	      return "";
@@ -85,7 +89,10 @@ public class DataCore extends BasicStoreToolsBase{
 		    	 }
 		     }
 	    }
-	    return mobileInfo.macID;
+	    if(mobileInfo != null){
+	    	return mobileInfo.macID;
+	    }
+	    return "";
 	  }
 
 	  /**
@@ -100,6 +107,8 @@ public class DataCore extends BasicStoreToolsBase{
 			  if(context != null){
 				  mobileInfo.deviceId = CommonUtil.getDeviceID(context);
 			  }
+		  }
+		  if(mobileInfo != null){
 			  return mobileInfo.deviceId;
 		  }
 		  return "";
@@ -121,6 +130,8 @@ public class DataCore extends BasicStoreToolsBase{
 	    	if(context != null){
 	    		mobileInfo.appVersionCode = CommonUtil.getVersionCode(context);
 	    	}
+	    }
+	    if(mobileInfo != null){
 	    	return mobileInfo.appVersionCode;
 	    }
 	    return -1;
@@ -141,7 +152,7 @@ public class DataCore extends BasicStoreToolsBase{
 
 	  public static String getOperator(TelephonyManager tm)
 	  {
-	    if (TextUtils.isEmpty(mobileInfo.networkOperator) && tm != null)
+	    if (mobileInfo != null && TextUtils.isEmpty(mobileInfo.networkOperator) && tm != null)
 	      mobileInfo.networkOperator = tm.getNetworkOperator();
 	    return mobileInfo.networkOperator;
 	  }
@@ -152,7 +163,7 @@ public class DataCore extends BasicStoreToolsBase{
 	   */
 	  public static String getOSVersion()
 	  {
-	    if (TextUtils.isEmpty(mobileInfo.OSVersion))
+	    if (mobileInfo != null && TextUtils.isEmpty(mobileInfo.OSVersion))
 	    	mobileInfo.OSVersion = Build.VERSION.SDK;
 	    return mobileInfo.OSVersion;
 	  }

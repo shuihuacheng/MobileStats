@@ -420,7 +420,7 @@ public class CommonUtil {
 				typeString = "1xRTT";
 			}
 			if (type == TelephonyManager.NETWORK_TYPE_IDEN) {
-				typeString = "iDen";
+				typeString = "IDEN";
 			}
 			if (type == TelephonyManager.NETWORK_TYPE_EVDO_B) {
 				typeString = "EVDO_B";
@@ -429,7 +429,7 @@ public class CommonUtil {
 				typeString = "LTE";
 			}
 			if (type == TelephonyManager.NETWORK_TYPE_EHRPD) {
-				typeString = "eHRPD";
+				typeString = "EHRPD";
 			}
 			if (type == TelephonyManager.NETWORK_TYPE_HSPAP) {
 				typeString = "HSPAP";
